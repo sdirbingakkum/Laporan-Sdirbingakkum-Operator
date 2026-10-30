@@ -154,7 +154,7 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
 
       <header className="topbar">
         <a className="wordmark" href="/" aria-label="Laporan Sdirbingakkum Operator">
-          <span className="wordmark__symbol">S</span>
+          <img className="wordmark__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
           <span className="wordmark__text">
             <strong>SDIRBINGAKKUM</strong>
             <small>OPERATOR PORTAL</small>
@@ -343,7 +343,7 @@ function VerifiedPage({ operator, onLogout }: { operator: ActiveOperator; onLogo
       <div className="grain" />
       <header className="topbar">
         <div className="wordmark">
-          <span className="wordmark__symbol">S</span>
+          <img className="wordmark__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
           <span className="wordmark__text"><strong>SDIRBINGAKKUM</strong><small>OPERATOR PORTAL</small></span>
         </div>
         <button className="logout-button" onClick={handleLogout} disabled={loggingOut}>
@@ -435,7 +435,7 @@ export default function App() {
   if (!sessionReady) {
     return (
       <main className="session-checking" role="status" aria-live="polite">
-        <span className="session-checking__mark">S</span>
+        <img className="session-checking__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
         <span>MEMERIKSA SESI</span>
       </main>
     );
