@@ -421,3 +421,110 @@ button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Statistik Giat Gakkum */
+.gakkum-report { display: grid; gap: 19px; max-width: 1120px; margin: 0 auto; padding-top: 4px; }
+.gakkum-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.gakkum-heading h1 { margin: 0; color: #233246; font-size: clamp(24px, 3vw, 32px); font-weight: 750; letter-spacing: -.045em; }
+.gakkum-heading p:last-child { margin: 9px 0 0; color: #7d8998; font-size: 12px; line-height: 1.6; }
+.gakkum-status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid #e2e8ee; border-radius: 7px; background: #fff; color: #66778a; font-size: 8px; font-weight: 800; letter-spacing: .09em; white-space: nowrap; }
+.gakkum-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #93a2b1; }
+.gakkum-period-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 21px; border: 1px solid #e2e8ef; border-radius: 11px; background: #fff; }
+.gakkum-unit, .gakkum-month-field { display: grid; gap: 6px; }
+.gakkum-unit > span, .gakkum-month-field > span { color: #96a2af; font-size: 8px; font-weight: 800; letter-spacing: .13em; }
+.gakkum-unit strong { color: #2b3d52; font-size: 13px; font-weight: 750; }
+.gakkum-unit small { color: #8e9baa; font-size: 10px; }
+.gakkum-month-field { min-width: 205px; }
+.gakkum-month-field input { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #dce3ea; border-radius: 7px; background: #fff; color: #34465c; font-size: 12px; outline: none; }
+.gakkum-month-field input:focus { border-color: #8093a8; box-shadow: 0 0 0 3px rgba(72, 100, 132, .1); }
+.gakkum-summary-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 12px; }
+.gakkum-summary-card { display: grid; min-height: 116px; align-content: start; gap: 7px; padding: 17px 18px; border: 1px solid #e3e9ef; border-radius: 10px; background: #fff; }
+.gakkum-summary-card > span { color: #91a0af; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.gakkum-summary-card > strong { color: #283a50; font-size: 25px; font-weight: 750; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.gakkum-summary-card > strong small { color: #8795a5; font-size: 13px; font-weight: 650; }
+.gakkum-summary-card > small { color: #8a97a5; font-size: 9px; line-height: 1.45; }
+.gakkum-summary-primary { border-color: #d7e1eb; background: linear-gradient(120deg, #fff 0%, #f6f9fc 100%); }
+.gakkum-summary-primary > strong { font-size: 29px; }
+.gakkum-summary-card .gakkum-period-value { font-size: 18px; letter-spacing: -.02em; text-transform: capitalize; }
+.gakkum-notice { display: flex; flex-wrap: wrap; gap: 5px 8px; padding: 12px 14px; border: 1px solid #e3e9ef; border-radius: 8px; background: #fff; color: #6c7d8f; font-size: 10px; line-height: 1.6; }
+.gakkum-notice strong { color: #43576d; }
+.gakkum-notice-warning { border-color: #eadfca; background: #fffdf8; color: #846b43; }
+.gakkum-notice-warning strong { color: #73572d; }
+.gakkum-feedback { padding: 12px 14px; border-radius: 8px; font-size: 10px; line-height: 1.6; }
+.gakkum-feedback-error { border: 1px solid #f1d4d1; background: #fff8f7; color: #a33a32; }
+.gakkum-feedback-success { border: 1px solid #d6e8dc; background: #f8fcf9; color: #326b48; }
+.gakkum-loading { padding: 35px 20px; border: 1px solid #e3e9ef; border-radius: 10px; background: #fff; color: #8593a2; font-size: 12px; text-align: center; }
+.gakkum-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 15px; padding-top: 8px; }
+.gakkum-section-heading .eyebrow { margin-bottom: 6px; }
+.gakkum-section-heading h2 { margin: 0; color: #2b3c50; font-size: 18px; font-weight: 750; letter-spacing: -.025em; }
+.gakkum-section-heading > span { padding: 7px 9px; border: 1px solid #e2e8ef; border-radius: 6px; color: #8a98a7; font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.gakkum-groups { display: grid; gap: 12px; }
+.gakkum-group-card { overflow: hidden; border: 1px solid #e2e8ef; border-radius: 10px; background: #fff; }
+.gakkum-group-heading { display: flex; min-height: 54px; align-items: center; gap: 11px; padding: 12px 17px; border-bottom: 1px solid #edf1f4; background: #fafbfd; }
+.gakkum-group-number { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border-radius: 7px; background: #edf2f7; color: #687c92; font-size: 9px; font-weight: 800; }
+.gakkum-group-heading h3 { margin: 0; color: #34485e; font-size: 12px; font-weight: 750; }
+.gakkum-group-total { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.gakkum-group-total span { color: #99a5b1; font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.gakkum-group-total strong { min-width: 34px; color: #51677f; font-size: 13px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.gakkum-field-list { padding: 0 17px; }
+.gakkum-field-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(155px, 210px); align-items: center; gap: 10px; min-height: 65px; border-bottom: 1px solid #f0f2f5; }
+.gakkum-field-row:last-child { border-bottom: 0; }
+.gakkum-field-index { color: #a0abb7; font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.gakkum-field-copy { display: grid; gap: 4px; min-width: 0; }
+.gakkum-field-copy label { color: #43566c; font-size: 11px; font-weight: 650; line-height: 1.4; }
+.gakkum-field-copy small { color: #9aa5b1; font-size: 8px; }
+.gakkum-input-wrap { display: flex; height: 37px; align-items: center; gap: 7px; padding: 0 9px; border: 1px solid #dce4eb; border-radius: 7px; background: #fff; }
+.gakkum-input-wrap:focus-within { border-color: #8296ab; box-shadow: 0 0 0 3px rgba(72, 100, 132, .08); }
+.gakkum-input-wrap input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #2d4056; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.gakkum-input-wrap input::placeholder { color: #b5bec8; }
+.gakkum-input-wrap input:disabled { color: #798899; opacity: 1; -webkit-text-fill-color: #798899; }
+.gakkum-input-wrap:has(input:disabled) { border-color: #edf0f3; background: #f8fafb; }
+.gakkum-input-wrap > span { color: #a1acb8; font-size: 7px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; }
+.gakkum-subgroup-label { padding: 10px 0 5px 40px; color: #8998a8; font-size: 8px; font-weight: 850; letter-spacing: .13em; }
+.gakkum-total-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border: 1px solid #dce5ed; border-radius: 10px; background: linear-gradient(110deg, #fff 0%, #f7f9fb 100%); }
+.gakkum-total-panel div { display: grid; gap: 6px; }
+.gakkum-total-panel div span { color: #52677e; font-size: 9px; font-weight: 850; letter-spacing: .12em; }
+.gakkum-total-panel div small { color: #8b98a6; font-size: 9px; line-height: 1.5; }
+.gakkum-total-panel > strong { color: #263b53; font-size: 25px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.gakkum-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0 4px; border-top: 1px solid #e4eaf0; }
+.gakkum-form-footer > div { display: grid; gap: 5px; }
+.gakkum-form-footer > div strong { color: #45586d; font-size: 10px; font-weight: 750; }
+.gakkum-form-footer > div small { color: #8c98a6; font-size: 9px; line-height: 1.45; }
+.gakkum-form-footer .gakkum-inline-error { color: #b42318; }
+.gakkum-form-footer button { min-height: 42px; padding: 0 19px; border: 0; border-radius: 7px; background: #26384d; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .08em; transition: background .15s ease, opacity .15s ease; }
+.gakkum-form-footer button:hover:not(:disabled) { background: #172638; }
+.gakkum-form-footer button:disabled { cursor: not-allowed; opacity: .42; }
+.module-status-active { color: #48765b; }
+
+@media (max-width: 760px) {
+  .gakkum-report { gap: 15px; }
+  .gakkum-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .gakkum-heading h1 { font-size: 25px; }
+  .gakkum-period-panel { align-items: stretch; flex-direction: column; padding: 16px; }
+  .gakkum-month-field { min-width: 0; }
+  .gakkum-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .gakkum-summary-primary { grid-column: 1 / -1; }
+  .gakkum-summary-card { min-height: 105px; padding: 14px; }
+  .gakkum-summary-primary { min-height: 112px; }
+  .gakkum-section-heading h2 { font-size: 16px; }
+  .gakkum-group-heading { padding: 11px 12px; }
+  .gakkum-field-list { padding: 0 12px; }
+  .gakkum-field-row { grid-template-columns: 23px minmax(0, 1fr) minmax(110px, 135px); gap: 7px; min-height: 66px; }
+  .gakkum-field-copy label { font-size: 10px; }
+  .gakkum-input-wrap { height: 36px; padding: 0 7px; }
+  .gakkum-input-wrap > span { font-size: 6px; }
+  .gakkum-group-total { gap: 7px; }
+  .gakkum-group-total span { font-size: 7px; }
+  .gakkum-subgroup-label { padding-left: 30px; }
+  .gakkum-form-footer { align-items: stretch; flex-direction: column; }
+  .gakkum-form-footer button { width: 100%; min-height: 45px; }
+}
+@media (max-width: 390px) {
+  .gakkum-summary-card > strong { font-size: 22px; }
+  .gakkum-field-row { grid-template-columns: 19px minmax(0, 1fr) 106px; gap: 6px; }
+  .gakkum-field-index { font-size: 8px; }
+  .gakkum-field-copy label { font-size: 9px; }
+  .gakkum-input-wrap > span { display: none; }
+  .gakkum-group-total span { max-width: 80px; line-height: 1.2; text-align: right; }
+}

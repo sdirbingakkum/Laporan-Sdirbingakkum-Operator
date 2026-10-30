@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ACTIVE_POMDAMS } from "./data/pomdams";
 import { REPORT_MODULES, type ReportModule } from "./data/report-modules";
+import GakkumReport from "./components/GakkumReport";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
   operatorEmail,
@@ -118,7 +119,7 @@ function DashboardPage({ operator, onLogout }: { operator: ActiveOperator; onLog
         </header>
         <main className="dashboard-content">
           {errorMessage && <p className="form-error dashboard-error" role="alert">{errorMessage}</p>}
-          {activeModule ? <ReportPlaceholder report={activeModule} onBack={goHome} /> : <DashboardHome operator={operator} onOpenModule={openModule} />}
+          {activeModule ? (activeModule.code === "GAKKUM" ? <GakkumReport operator={operator} onBack={goHome} /> : <ReportPlaceholder report={activeModule} onBack={goHome} />) : <DashboardHome operator={operator} onOpenModule={openModule} />}
         </main>
       </div>
     </div>
@@ -135,7 +136,7 @@ function DashboardHome({ operator, onOpenModule }: { operator: ActiveOperator; o
       <section className="module-section" aria-labelledby="report-heading">
         <div className="section-heading"><div><p className="eyebrow">Laporan</p><h2 id="report-heading">Menu Laporan</h2></div><span className="module-count">{String(REPORT_MODULES.length).padStart(2, "0")} LAPORAN</span></div>
         <div className="module-grid">
-          {REPORT_MODULES.map((module, index) => <button className="module-card" key={module.code} type="button" onClick={() => onOpenModule(module.code)}><div className="module-card-top"><span className="module-number">{String(index + 1).padStart(2, "0")}</span><span className="module-arrow" aria-hidden="true">↗</span></div><div className="module-card-copy"><h3>{module.title}</h3><p>{module.description}</p></div><div className="module-card-footer"><span>BUKA</span><span className="module-status">BELUM AKTIF</span></div></button>)}
+          {REPORT_MODULES.map((module, index) => <button className="module-card" key={module.code} type="button" onClick={() => onOpenModule(module.code)}><div className="module-card-top"><span className="module-number">{String(index + 1).padStart(2, "0")}</span><span className="module-arrow" aria-hidden="true">↗</span></div><div className="module-card-copy"><h3>{module.title}</h3><p>{module.description}</p></div><div className="module-card-footer"><span>BUKA</span><span className={`module-status ${module.code === "GAKKUM" ? "module-status-active" : ""}`}>{module.code === "GAKKUM" ? "AKTIF" : "BELUM AKTIF"}</span></div></button>)}
         </div>
       </section>
       <footer className="dashboard-footer"><span>Laporan Sdirbingakkum</span><span>Operator · {operator.pomdam.code}</span></footer>
