@@ -555,7 +555,7 @@ export default function GakkumReport({
                   )}
                 </div>
                 <div className="gakkum-field-list">
-                  {group.fields.map((field, fieldIndex) => (
+                  {group.fields.map((field) => (
                     <div key={field.code}>
                       {field.code === "PENANGKAPAN" && (
                         <div className="gakkum-subgroup-label">UPAYA PAKSA</div>
