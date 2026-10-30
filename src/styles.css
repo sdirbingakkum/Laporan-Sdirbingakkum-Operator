@@ -230,3 +230,29 @@ button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+.session-checking {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: #111a16;
+  color: #d6bb7b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+}
+
+.session-checking__mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(214, 187, 123, 0.58);
+  border-radius: 50%;
+  color: #e6d2a2;
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+}
