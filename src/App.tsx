@@ -392,7 +392,7 @@ export default function App() {
           return;
         }
 
-        const { data, error } = await client.rpc("get_my_access_context");
+        const { data, error } = await authClient.rpc("get_my_access_context");
         if (disposed) return;
 
         const operator = !error && data
