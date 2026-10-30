@@ -99,7 +99,7 @@ test("rejects commander and global Puspomad roles from the operator portal", () 
 test("restores only an operator session with exactly one Pomdam scope", () => {
   const result = resolveRestoredOperator(localAccess, "operator_im@puspomad.mil.id");
   assert.equal(result?.pomdam.id, pomdam.id);
-  assert.equal(
+  assert.deepEqual(
     resolveRestoredOperator(
       { ...localAccess, scope: { type: "POMDAM", pomdam_ids: [pomdam.id, pomdam.id] } },
       "operator_im@puspomad.mil.id",
