@@ -83,12 +83,12 @@ button:disabled { cursor: not-allowed; }
   background: radial-gradient(circle, rgba(214,177,103,.17), transparent 68%); filter: blur(22px);
 }
 .brand-mark {
-  width: 196px; height: 196px; border-radius: 50%; padding: 7px; position: relative;
+  width: 196px; height: 196px; border-radius: 20px; padding: 7px; position: relative;
   background: linear-gradient(145deg, #f4dfaa, #9e793e 37%, #e3c37f 61%, #70552d);
   box-shadow: 0 20px 55px rgba(0,0,0,.34), 0 0 0 1px rgba(255,224,159,.32), inset 0 0 0 1px rgba(255,255,255,.38);
 }
-.brand-mark img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 50%; }
-.brand-mark__ring { position: absolute; inset: 3px; border: 1px solid rgba(255,245,217,.53); border-radius: 50%; pointer-events: none; }
+.brand-mark img { width: 100%; height: 100%; display: block; object-fit: contain; border-radius: 0; }
+.brand-mark__ring { position: absolute; inset: 3px; border: 1px solid rgba(255,245,217,.53); border-radius: 16px; pointer-events: none; }
 .brand-mark--compact { width: 92px; height: 92px; padding: 4px; }
 .brand-emblem-caption { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 18px; color: #b3a17b; font-size: 8px; letter-spacing: .27em; font-weight: 800; }
 .brand-emblem-caption__line { display: block; height: 1px; width: 28px; background: linear-gradient(90deg, transparent, rgba(215,179,107,.55)); }
