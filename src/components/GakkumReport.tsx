@@ -638,7 +638,7 @@ export default function GakkumReport({
             </button>
           </div>
         </>
-      )}
+      ) : null}
     </section>
   );
 }
