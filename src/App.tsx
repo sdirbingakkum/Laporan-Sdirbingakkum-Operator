@@ -13,6 +13,7 @@ type AccessContext = {
 type ActiveOperator = {
   pomdam: Pomdam;
   email: string;
+  mode: "authenticated" | "demo";
 };
 
 function BrandMark({ compact = false }: { compact?: boolean }) {
@@ -74,7 +75,7 @@ function resolveAuthorizedOperator(
       operatorEmail(item.code).toLowerCase() === normalizedEmail,
   );
 
-  return pomdam ? { pomdam, email: normalizedEmail } : null;
+  return pomdam ? { pomdam, email: normalizedEmail, mode: "authenticated" } : null;
 }
 
 function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => void }) {
@@ -101,13 +102,24 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
       setErrorMessage("Masukkan password untuk melanjutkan.");
       return;
     }
+    const email = operatorEmail(selectedPomdam.code);
+
+    // Preview-only demonstration: no Supabase session is created and no report data is requested.
+    if (import.meta.env.VITE_DEMO_LOGIN_MODE === "true") {
+      if (password !== "123456") {
+        setErrorMessage("Password demonstrasi tidak cocok. Gunakan password yang ditampilkan pada catatan demo.");
+        return;
+      }
+      onSuccess({ pomdam: selectedPomdam, email, mode: "demo" });
+      return;
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       setErrorMessage("Konfigurasi koneksi belum tersedia. Hubungi administrator sistem.");
       return;
     }
 
     setLoading(true);
-    const email = operatorEmail(selectedPomdam.code);
 
     let authenticated = false;
     try {
@@ -217,6 +229,11 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
               <p className="form-heading__overline">SELAMAT DATANG</p>
               <h2>Masuk ke akun Anda.</h2>
               <p>Pilih satuan kerja dan masukkan password untuk melanjutkan.</p>
+              {import.meta.env.VITE_DEMO_LOGIN_MODE === "true" && (
+                <div className="demo-hint" role="note">
+                  MODE DEMONSTRASI · PASSWORD 123456 · TANPA AKSES DATA
+                </div>
+              )}
             </div>
 
             <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -352,16 +369,33 @@ function VerifiedPage({ operator, onLogout }: { operator: ActiveOperator; onLogo
       </header>
       <section className="verified-card">
         <div className="verified-card__mark"><BrandMark compact /></div>
-        <div className="verified-status"><span><Icon name="check" /></span> AKSES TERVERIFIKASI</div>
-        <p className="verified-kicker">SELAMAT DATANG, OPERATOR</p>
-        <h1>{operator.pomdam.displayName}</h1>
-        <p className="verified-copy">Autentikasi dan pemeriksaan hak akses Pomdam berhasil. Ruang kerja operator siap dilanjutkan pada tahap berikutnya.</p>
-        <div className="verified-details">
-          <div><span>IDENTITAS LOGIN</span><strong>{operator.email}</strong></div>
-          <div><span>ROLE</span><strong>OPERATOR POMDAM</strong></div>
-          <div><span>STATUS</span><strong className="status-active">TERAUTENTIKASI</strong></div>
-        </div>
-        <div className="verified-footnote"><Icon name="shield" /> Hak akses tetap ditegakkan oleh Supabase Row Level Security.</div>
+        {operator.mode === "demo" ? (
+          <>
+            <div className="verified-status verified-status--demo"><span><Icon name="shield" /></span> MODE DEMONSTRASI · DATA NONAKTIF</div>
+            <p className="verified-kicker">PREVIEW ALUR LOGIN</p>
+            <h1>{operator.pomdam.displayName}</h1>
+            <p className="verified-copy">Login demonstrasi berhasil. Ini hanya simulasi antarmuka; tidak membuat sesi Supabase dan tidak membaca atau mengubah data laporan.</p>
+            <div className="verified-details">
+              <div><span>IDENTITAS DEMO</span><strong>{operator.email}</strong></div>
+              <div><span>LINGKUP</span><strong>PREVIEW SAJA</strong></div>
+              <div><span>AKSES DATA</span><strong className="status-demo">DINONAKTIFKAN</strong></div>
+            </div>
+            <div className="verified-footnote"><Icon name="shield" /> Tidak ada autentikasi backend atau permintaan data laporan pada mode ini.</div>
+          </>
+        ) : (
+          <>
+            <div className="verified-status"><span><Icon name="check" /></span> AKSES TERVERIFIKASI</div>
+            <p className="verified-kicker">SELAMAT DATANG, OPERATOR</p>
+            <h1>{operator.pomdam.displayName}</h1>
+            <p className="verified-copy">Autentikasi dan pemeriksaan hak akses Pomdam berhasil. Ruang kerja operator siap dilanjutkan pada tahap berikutnya.</p>
+            <div className="verified-details">
+              <div><span>IDENTITAS LOGIN</span><strong>{operator.email}</strong></div>
+              <div><span>ROLE</span><strong>OPERATOR POMDAM</strong></div>
+              <div><span>STATUS</span><strong className="status-active">TERAUTENTIKASI</strong></div>
+            </div>
+            <div className="verified-footnote"><Icon name="shield" /> Hak akses tetap ditegakkan oleh Supabase Row Level Security.</div>
+          </>
+        )}
       </section>
     </main>
   );
@@ -428,7 +462,9 @@ export default function App() {
   }, []);
 
   async function logout() {
-    if (supabase) await supabase.auth.signOut();
+    if (activeOperator?.mode === "authenticated" && supabase) {
+      await supabase.auth.signOut();
+    }
     setActiveOperator(null);
   }
 
