@@ -30,3 +30,15 @@
 - Supabase sessions are restored at app startup and the access context is re-checked before reopening the verified screen. A stored browser session alone is never treated as authorization.
 - The requested shared demo password `123456` must not be assigned to accounts that receive `POMDAM_OPERATOR`, a Pomdam scope, or `MANAGE_REPORT_DATA` on the shared production database. Demo identities can be created only as unprivileged accounts until unique passwords are set and access is explicitly provisioned.
 - A successful authentication displays a verified-access placeholder; the operator dashboard is the next development stage.
+
+## Preview-only demonstration
+
+A shared temporary password must not be used to create real Auth users in the production project. The existing shared database contains authenticated SELECT policies with `USING (true)` on reporting tables including SIM, violation, traffic-accident, and Provos records. Creating 21 weak-password Auth identities against this project could therefore expose reporting data across Pomdam.
+
+For design review only, set `VITE_DEMO_LOGIN_MODE=true` on a Cloudflare **Preview** build. In this mode:
+- The login screen accepts the demonstration password `123456`.
+- The selected Pomdam is shown on a static demo confirmation screen.
+- No Supabase Auth sign-in, session, RPC, or report-data request is made.
+- No account, role, Pomdam scope, database row, or RLS policy is created or changed.
+
+Keep `VITE_DEMO_LOGIN_MODE=false` in Production. This preview simulation is not authentication and must never be used to submit real reports. Real operator login continues to use Supabase Auth plus the verified access context.
