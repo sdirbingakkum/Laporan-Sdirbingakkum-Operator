@@ -11,7 +11,7 @@ Operator portal for the Laporan Sdirbingakkum system.
 - GitHub Actions
 
 ## Operator login
-- The login form accepts a Pomdam operator username such as `operator_im`.
+- The login form keeps a Pomdam dropdown; selecting a Pomdam automatically derives its operator username, such as `operator_im`.
 - The username is mapped to the corresponding local Supabase Auth identity: `operator_<normalized-code>@puspomad.mil.id`.
 - After password authentication, the app calls `public.get_my_access_context()` and accepts only `POMDAM_OPERATOR` with a single matching `POMDAM` scope and `MANAGE_REPORT_DATA` capability.
 - Commander accounts and the Puspomad-wide operator account are not accepted by this operator portal.
