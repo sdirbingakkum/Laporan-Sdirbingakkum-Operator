@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ACTIVE_POMDAMS, type Pomdam } from "./data/pomdams";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 
@@ -49,6 +49,34 @@ function operatorEmail(code: string) {
   return `operator_${slug}@puspomad.mil.id`;
 }
 
+function resolveAuthorizedOperator(
+  access: AccessContext,
+  email: string | null | undefined,
+  expectedPomdamId?: string,
+): ActiveOperator | null {
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (
+    !normalizedEmail ||
+    !access.authenticated ||
+    !access.configured ||
+    access.role?.code !== "POMDAM_OPERATOR" ||
+    access.scope?.type !== "POMDAM" ||
+    !access.capabilities?.includes("MANAGE_REPORT_DATA")
+  ) {
+    return null;
+  }
+
+  const allowedPomdamIds = new Set(access.scope.pomdam_ids ?? []);
+  const pomdam = ACTIVE_POMDAMS.find(
+    (item) =>
+      allowedPomdamIds.has(item.id) &&
+      (!expectedPomdamId || item.id === expectedPomdamId) &&
+      operatorEmail(item.code).toLowerCase() === normalizedEmail,
+  );
+
+  return pomdam ? { pomdam, email: normalizedEmail } : null;
+}
+
 function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => void }) {
   const [selectedPomdamId, setSelectedPomdamId] = useState("");
   const [password, setPassword] = useState("");
@@ -81,6 +109,7 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
     setLoading(true);
     const email = operatorEmail(selectedPomdam.code);
 
+    let authenticated = false;
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -91,6 +120,7 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
         setErrorMessage("Kredensial tidak cocok. Periksa Pomdam yang dipilih dan password Anda.");
         return;
       }
+      authenticated = true;
 
       const { data, error: accessError } = await supabase.rpc("get_my_access_context");
 
@@ -100,20 +130,16 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
         return;
       }
 
-      const access = data as AccessContext;
-      const allowedPomdamIds = access.scope?.pomdam_ids ?? [];
-      const hasExpectedRole = access.role?.code === "POMDAM_OPERATOR";
-      const hasExpectedScope = access.scope?.type === "POMDAM" && allowedPomdamIds.includes(selectedPomdam.id);
-      const canManageReports = access.capabilities?.includes("MANAGE_REPORT_DATA") === true;
-
-      if (!access.authenticated || !access.configured || !hasExpectedRole || !hasExpectedScope || !canManageReports) {
+      const operator = resolveAuthorizedOperator(data as AccessContext, email, selectedPomdam.id);
+      if (!operator) {
         await supabase.auth.signOut();
         setErrorMessage("Akun ini tidak terdaftar sebagai operator pada Pomdam yang dipilih.");
         return;
       }
 
-      onSuccess({ pomdam: selectedPomdam, email });
+      onSuccess(operator);
     } catch {
+      if (authenticated) await supabase.auth.signOut();
       setErrorMessage("Terjadi kendala saat menghubungi layanan autentikasi. Coba kembali.");
     } finally {
       setLoading(false);
@@ -343,10 +369,75 @@ function VerifiedPage({ operator, onLogout }: { operator: ActiveOperator; onLogo
 
 export default function App() {
   const [activeOperator, setActiveOperator] = useState<ActiveOperator | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setSessionReady(true);
+      return;
+    }
+
+    let disposed = false;
+
+    async function restoreSession() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const session = sessionData.session;
+        if (!session?.user?.email) {
+          if (!disposed) setActiveOperator(null);
+          return;
+        }
+
+        const { data, error } = await client.rpc("get_my_access_context");
+        if (disposed) return;
+
+        const operator = !error && data
+          ? resolveAuthorizedOperator(data as AccessContext, session.user.email)
+          : null;
+
+        if (operator) {
+          setActiveOperator(operator);
+        } else {
+          await client.auth.signOut();
+          if (!disposed) setActiveOperator(null);
+        }
+      } catch {
+        if (!disposed) setActiveOperator(null);
+      } finally {
+        if (!disposed) setSessionReady(true);
+      }
+    }
+
+    void restoreSession();
+
+    const { data: authListener } = client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setActiveOperator(null);
+        setSessionReady(true);
+      }
+    });
+
+    return () => {
+      disposed = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   async function logout() {
     if (supabase) await supabase.auth.signOut();
     setActiveOperator(null);
+  }
+
+  if (!sessionReady) {
+    return (
+      <main className="session-checking" role="status" aria-live="polite">
+        <span className="session-checking__mark">S</span>
+        <span>MEMERIKSA SESI</span>
+      </main>
+    );
   }
 
   return activeOperator
