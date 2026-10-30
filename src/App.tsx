@@ -406,6 +406,11 @@ export default function App() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
+    if (import.meta.env.VITE_DEMO_LOGIN_MODE === "true") {
+      setSessionReady(true);
+      return;
+    }
+
     const client = supabase;
     if (!client) {
       setSessionReady(true);
