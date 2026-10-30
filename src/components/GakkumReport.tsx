@@ -116,6 +116,7 @@ export default function GakkumReport({
   const [refreshKey, setRefreshKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -459,15 +460,19 @@ export default function GakkumReport({
 
   return (
     <section className="gakkum-report">
-      <button className="back-link" type="button" onClick={onBack}>
-        <span aria-hidden="true">←</span> Kembali ke dashboard
+      <button
+        className="back-link"
+        type="button"
+        onClick={showForm ? () => setShowForm(false) : onBack}
+      >
+        <span aria-hidden="true">←</span> {showForm ? "Kembali ke ringkasan" : "Kembali ke dashboard"}
       </button>
 
       <div className="gakkum-heading">
         <div>
           <p className="eyebrow">LAPORAN 01 · GIAT GAKKUM</p>
           <h1>Statistik Giat Gakkum</h1>
-          <p>Input dan pantau kegiatan penegakan hukum Pomdam.</p>
+          <p>{showForm ? "Isi jumlah kegiatan penegakan hukum Pomdam untuk periode yang dipilih." : "Pantau status laporan dan buka formulir pengisian kegiatan Pomdam."}</p>
         </div>
         <div className="gakkum-status">
           <span className="gakkum-status-dot" />
@@ -529,9 +534,31 @@ export default function GakkumReport({
       {errorMessage && <div className="gakkum-feedback gakkum-feedback-error" role="alert">{errorMessage}</div>}
       {saveMessage && <div className="gakkum-feedback gakkum-feedback-success" role="status">{saveMessage}</div>}
 
+      {!showForm && !loading && fields.length > 0 && (
+        <section className="gakkum-entry-panel" aria-label="Aksi laporan">
+          <div className="gakkum-entry-copy">
+            <span>FORMULIR PELAPORAN</span>
+            <strong>
+              {editableCount > 0 && !submissionOwnerConflict
+                ? submission ? "Lanjutkan atau perbarui laporan" : "Siap mengisi laporan periode ini?"
+                : "Laporan periode ini hanya dapat dilihat"}
+            </strong>
+            <p>
+              {editableCount > 0 && !submissionOwnerConflict
+                ? "Tekan tombol di samping untuk membuka 14 kolom kegiatan. Perubahan akan disimpan ke database."
+                : "Data periode ini berasal dari impor Excel atau dikirim oleh operator lain, sehingga kolomnya tidak dapat diubah dari akun ini."}
+            </p>
+          </div>
+          <button type="button" onClick={() => setShowForm(true)}>
+            {editableCount > 0 && !submissionOwnerConflict ? "ISI LAPORAN" : "LIHAT LAPORAN"}
+            <span aria-hidden="true">→</span>
+          </button>
+        </section>
+      )}
+
       {loading ? (
         <div className="gakkum-loading">Memuat data Gakkum...</div>
-      ) : (
+      ) : showForm ? (
         <>
           <div className="gakkum-section-heading">
             <div>
@@ -614,6 +641,11 @@ export default function GakkumReport({
             </button>
           </div>
         </>
+      ) : (
+        <div className="gakkum-overview-note">
+          <strong>Ringkasan laporan siap.</strong>
+          <span>Pilih tombol {editableCount > 0 && !submissionOwnerConflict ? "ISI LAPORAN" : "LIHAT LAPORAN"} untuk membuka rincian kegiatan periode {monthLabel}.</span>
+        </div>
       )}
     </section>
   );
