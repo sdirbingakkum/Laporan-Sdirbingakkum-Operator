@@ -28,5 +28,14 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
-      - name: Production build
+      - name: Build isolated preview (demo only)
         run: npm run build
+        env:
+          VITE_DEMO_LOGIN_MODE: "true"
+      - name: Upload isolated preview build
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-preview-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
