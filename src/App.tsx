@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ACTIVE_POMDAMS } from "./data/pomdams";
 import { REPORT_MODULES, type ReportModule } from "./data/report-modules";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
