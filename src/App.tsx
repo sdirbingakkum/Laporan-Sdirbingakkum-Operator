@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ACTIVE_POMDAMS } from "./data/pomdams";
 import { REPORT_MODULES, type ReportModule } from "./data/report-modules";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
   operatorEmail,
-  pomdamFromOperatorUsername,
   resolveAuthorizedOperator,
   resolveRestoredOperator,
   type AccessContext,
@@ -11,26 +11,21 @@ import {
 } from "./lib/operator-auth";
 
 function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => void }) {
-  const [username, setUsername] = useState("");
+  const [selectedPomdamId, setSelectedPomdamId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const selectedPomdam = useMemo(
-    () => pomdamFromOperatorUsername(username),
-    [username],
+    () => ACTIVE_POMDAMS.find((pomdam) => pomdam.id === selectedPomdamId) ?? null,
+    [selectedPomdamId],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
 
-    if (!selectedPomdam) {
-      setErrorMessage("Username operator tidak ditemukan. Gunakan format operator_<kode Pomdam>.");
-      return;
-    }
-
-    if (!password.trim()) return;
+    if (!selectedPomdam || !password.trim()) return;
     if (!isSupabaseConfigured || !supabase) {
       setErrorMessage("Layanan login belum tersedia.");
       return;
@@ -91,22 +86,29 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field-group">
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
+            <label htmlFor="pomdam">Pomdam</label>
+            <select
+              id="pomdam"
+              value={selectedPomdamId}
               onChange={(event) => {
-                setUsername(event.target.value);
+                setSelectedPomdamId(event.target.value);
                 setErrorMessage("");
               }}
-              placeholder="operator_im"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
               required
               disabled={loading}
-            />
+            >
+              <option value="" disabled>Pilih Pomdam</option>
+              {ACTIVE_POMDAMS.map((pomdam) => (
+                <option key={pomdam.id} value={pomdam.id}>
+                  {pomdam.code} — {pomdam.name}
+                </option>
+              ))}
+            </select>
+            {selectedPomdam && (
+              <p className="field-hint">
+                Username operator: <strong>{operatorEmail(selectedPomdam.code).split("@")[0]}</strong>
+              </p>
+            )}
           </div>
 
           <div className="field-group">
@@ -128,7 +130,7 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
 
           {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
 
-          <button className="submit-button" type="submit" disabled={loading || !username.trim() || !password}>
+          <button className="submit-button" type="submit" disabled={loading || !selectedPomdamId || !password}>
             {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>
