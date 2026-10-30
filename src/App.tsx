@@ -1,110 +1,80 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ACTIVE_POMDAMS } from "./data/pomdams";
+import { REPORT_MODULES, type ReportModule } from "./data/report-modules";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
-  isPuspomadOperatorContext,
-  operatorLoginEmails,
+  operatorEmail,
+  pomdamFromOperatorUsername,
   resolveAuthorizedOperator,
   resolveRestoredOperator,
-  SELECTED_POMDAM_STORAGE_KEY,
   type AccessContext,
   type ActiveOperator,
 } from "./lib/operator-auth";
 
-function readRememberedPomdamId(): string | null {
-  try {
-    const stored = window.localStorage.getItem(SELECTED_POMDAM_STORAGE_KEY);
-    return ACTIVE_POMDAMS.some((pomdam) => pomdam.id === stored) ? stored : null;
-  } catch {
-    return null;
-  }
-}
-
-function rememberPomdamId(pomdamId: string): void {
-  try {
-    window.localStorage.setItem(SELECTED_POMDAM_STORAGE_KEY, pomdamId);
-  } catch {
-    // Storage is only a convenience for restoring the selected unit, never an auth boundary.
-  }
-}
-
-function clearRememberedPomdamId(): void {
-  try {
-    window.localStorage.removeItem(SELECTED_POMDAM_STORAGE_KEY);
-  } catch {
-    // The Supabase session remains the source of authentication state.
-  }
-}
-
 function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => void }) {
-  const [selectedPomdamId, setSelectedPomdamId] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const selectedPomdam = useMemo(
-    () => ACTIVE_POMDAMS.find((pomdam) => pomdam.id === selectedPomdamId),
-    [selectedPomdamId],
+    () => pomdamFromOperatorUsername(username),
+    [username],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
 
-    if (!selectedPomdam || !password.trim()) return;
+    if (!selectedPomdam) {
+      setErrorMessage("Username operator tidak ditemukan. Gunakan format operator_<kode Pomdam>.");
+      return;
+    }
+
+    if (!password.trim()) return;
     if (!isSupabaseConfigured || !supabase) {
       setErrorMessage("Layanan login belum tersedia.");
       return;
     }
 
     setLoading(true);
+    const email = operatorEmail(selectedPomdam.code);
+
     try {
-      let authenticatedEmail: string | null = null;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      for (const email of operatorLoginEmails(selectedPomdam.code)) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (!signInError) {
-          authenticatedEmail = email;
-          break;
-        }
-
-        // Supabase intentionally returns a generic 400 for invalid credentials.
-        // Try the other supported operator identity without exposing account existence.
-        if (signInError.status && signInError.status !== 400) {
-          setErrorMessage("Layanan login sedang bermasalah. Silakan coba lagi.");
-          return;
-        }
-      }
-
-      if (!authenticatedEmail) {
-        setErrorMessage("Pomdam atau password tidak sesuai.");
+      if (signInError) {
+        setErrorMessage(
+          signInError.status === 400
+            ? "Username atau password tidak sesuai."
+            : "Layanan login sedang bermasalah. Silakan coba lagi.",
+        );
         return;
       }
 
       const { data, error: accessError } = await supabase.rpc("get_my_access_context");
       if (accessError || !data) {
         await supabase.auth.signOut();
-        setErrorMessage("Akses akun tidak dapat diverifikasi.");
+        setErrorMessage("Akses operator tidak dapat diverifikasi.");
         return;
       }
 
       const operator = resolveAuthorizedOperator(
         data as AccessContext,
-        authenticatedEmail,
+        email,
         selectedPomdam.id,
       );
 
       if (!operator) {
         await supabase.auth.signOut();
-        setErrorMessage("Akun tidak memiliki akses ke Pomdam yang dipilih.");
+        setErrorMessage("Akun ini bukan operator untuk Pomdam yang dipilih.");
         return;
       }
 
-      rememberPomdamId(operator.pomdam.id);
+      setPassword("");
       onSuccess(operator);
     } catch {
       await supabase.auth.signOut();
@@ -122,24 +92,22 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field-group">
-            <label htmlFor="pomdam">Pomdam</label>
-            <select
-              id="pomdam"
-              value={selectedPomdamId}
+            <label htmlFor="username">Username</label>
+            <input
+              id="username"
+              type="text"
+              value={username}
               onChange={(event) => {
-                setSelectedPomdamId(event.target.value);
+                setUsername(event.target.value);
                 setErrorMessage("");
               }}
+              placeholder="operator_im"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               required
               disabled={loading}
-            >
-              <option value="" disabled>Pilih Pomdam</option>
-              {ACTIVE_POMDAMS.map((pomdam) => (
-                <option key={pomdam.id} value={pomdam.id}>
-                  {pomdam.code} — {pomdam.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="field-group">
@@ -161,7 +129,7 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
 
           {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
 
-          <button className="submit-button" type="submit" disabled={loading || !selectedPomdamId || !password}>
+          <button className="submit-button" type="submit" disabled={loading || !username.trim() || !password}>
             {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>
@@ -170,39 +138,233 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
   );
 }
 
-function SignedInPage({
+function DashboardPage({
   operator,
   onLogout,
 }: {
   operator: ActiveOperator;
   onLogout: () => Promise<void>;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [activeModuleCode, setActiveModuleCode] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const activeModule = useMemo(
+    () => REPORT_MODULES.find((module) => module.code === activeModuleCode) ?? null,
+    [activeModuleCode],
+  );
+
+  function openModule(code: string) {
+    setActiveModuleCode(code);
+    setMobileMenuOpen(false);
+  }
+
+  function goHome() {
+    setActiveModuleCode(null);
+    setMobileMenuOpen(false);
+  }
+
   async function handleLogout() {
-    setLoading(true);
+    setLoggingOut(true);
     setErrorMessage("");
     try {
       await onLogout();
     } catch {
       setErrorMessage("Tidak dapat keluar. Silakan coba lagi.");
     } finally {
-      setLoading(false);
+      setLoggingOut(false);
     }
   }
 
   return (
-    <main className="login-page">
-      <section className="login-card signed-in-card">
-        <img className="brand-logo" src="/logo-pomad-prima.webp" alt="POMAD PRIMA" />
-        <h1>{operator.pomdam.displayName}</h1>
-        {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
-        <button className="submit-button" type="button" onClick={handleLogout} disabled={loading}>
-          {loading ? "Memproses..." : "Keluar"}
+    <div className="app-shell">
+      {mobileMenuOpen && (
+        <button
+          className="drawer-backdrop"
+          aria-label="Tutup menu"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside className={`sidebar ${mobileMenuOpen ? "sidebar-open" : ""}`}>
+        <div className="sidebar-brand">
+          <img src="/logo-pomad-prima.webp" alt="" />
+          <div>
+            <strong>POMAD PRIMA</strong>
+            <span>SISTEM LAPORAN</span>
+          </div>
+        </div>
+
+        <div className="sidebar-section-label">MENU UTAMA</div>
+        <button
+          className={`sidebar-link ${activeModule ? "" : "sidebar-link-active"}`}
+          onClick={goHome}
+        >
+          <span className="sidebar-link-index">00</span>
+          <span>Dashboard</span>
         </button>
+
+        <div className="sidebar-section-label reports-label">MENU LAPORAN</div>
+        <nav className="sidebar-nav" aria-label="Menu laporan">
+          {REPORT_MODULES.map((module, index) => (
+            <button
+              key={module.code}
+              className={`sidebar-link ${activeModuleCode === module.code ? "sidebar-link-active" : ""}`}
+              onClick={() => openModule(module.code)}
+            >
+              <span className="sidebar-link-index">{String(index + 1).padStart(2, "0")}</span>
+              <span>{module.title}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-bottom">
+          <span className="sidebar-bottom-label">UNIT OPERATOR</span>
+          <strong>{operator.pomdam.displayName}</strong>
+          <span className="sidebar-username">{operator.username}</span>
+        </div>
+      </aside>
+
+      <div className="workspace">
+        <header className="topbar">
+          <button
+            className="mobile-menu-button"
+            type="button"
+            aria-label="Buka menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <div className="topbar-heading">
+            <span className="topbar-eyebrow">SISTEM LAPORAN DIRBINGAKKUM</span>
+            <strong>{activeModule ? activeModule.title : "Dashboard"}</strong>
+          </div>
+
+          <div className="topbar-account">
+            <div className="account-avatar">OP</div>
+            <div className="account-copy">
+              <strong>{operator.pomdam.displayName}</strong>
+              <span>OPERATOR</span>
+            </div>
+            <button className="logout-button" type="button" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? "Keluar..." : "Keluar"}
+            </button>
+          </div>
+        </header>
+
+        <main className="dashboard-content">
+          {errorMessage && <p className="form-error dashboard-error" role="alert">{errorMessage}</p>}
+
+          {activeModule ? (
+            <ModulePlaceholder module={activeModule} onBack={goHome} />
+          ) : (
+            <DashboardHome operator={operator} onOpenModule={openModule} />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function DashboardHome({
+  operator,
+  onOpenModule,
+}: {
+  operator: ActiveOperator;
+  onOpenModule: (code: string) => void;
+}) {
+  return (
+    <>
+      <section className="welcome-section">
+        <div>
+          <p className="eyebrow">RUANG KERJA OPERATOR</p>
+          <h1>Selamat datang</h1>
+          <p className="welcome-description">
+            Pilih menu laporan untuk melanjutkan pekerjaan unit.
+          </p>
+        </div>
+        <div className="welcome-unit">
+          <span>UNIT ANDA</span>
+          <strong>{operator.pomdam.displayName}</strong>
+          <small>{operator.username}</small>
+        </div>
       </section>
-    </main>
+
+      <section className="module-section" aria-labelledby="module-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">MODUL SISTEM</p>
+            <h2 id="module-heading">Menu Laporan</h2>
+          </div>
+          <span className="module-count">{String(REPORT_MODULES.length).padStart(2, "0")} MODUL</span>
+        </div>
+
+        <div className="module-grid">
+          {REPORT_MODULES.map((module, index) => (
+            <button
+              className="module-card"
+              key={module.code}
+              type="button"
+              onClick={() => onOpenModule(module.code)}
+            >
+              <div className="module-card-top">
+                <span className="module-number">{String(index + 1).padStart(2, "0")}</span>
+                <span className="module-arrow" aria-hidden="true">↗</span>
+              </div>
+              <div className="module-card-copy">
+                <h3>{module.title}</h3>
+                <p>{module.description}</p>
+              </div>
+              <div className="module-card-footer">
+                <span>BUKA MENU</span>
+                <span className="module-status">BELUM AKTIF</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <footer className="dashboard-footer">
+        <span>POMAD PRIMA</span>
+        <span>PORTAL OPERATOR · {operator.pomdam.code}</span>
+      </footer>
+    </>
+  );
+}
+
+function ModulePlaceholder({
+  module,
+  onBack,
+}: {
+  module: ReportModule;
+  onBack: () => void;
+}) {
+  const index = REPORT_MODULES.findIndex((item) => item.code === module.code) + 1;
+
+  return (
+    <section className="module-placeholder">
+      <button className="back-link" type="button" onClick={onBack}>
+        <span aria-hidden="true">←</span> Kembali ke dashboard
+      </button>
+      <div className="placeholder-panel">
+        <span className="placeholder-index">MODUL {String(index).padStart(2, "0")}</span>
+        <span className="placeholder-status">DALAM PERSIAPAN</span>
+        <h1>{module.title}</h1>
+        <p>{module.description}</p>
+        <div className="placeholder-divider" />
+        <p className="placeholder-note">
+          Menu sudah disiapkan. Form input, pengolahan data, dan tampilan laporan akan dibangun pada tahap berikutnya.
+        </p>
+        <button className="placeholder-button" type="button" onClick={onBack}>
+          Kembali ke menu laporan
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -221,7 +383,6 @@ export default function App() {
     let disposed = false;
     const { data: authListener } = authClient.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        clearRememberedPomdamId();
         setActiveOperator(null);
         setSessionReady(true);
       }
@@ -247,24 +408,9 @@ export default function App() {
           return;
         }
 
-        const access = data as AccessContext;
-        const operator = resolveRestoredOperator(
-          access,
-          session.user.email,
-          readRememberedPomdamId(),
-        );
-
+        const operator = resolveRestoredOperator(data as AccessContext, session.user.email);
         if (operator) {
           setActiveOperator(operator);
-          rememberPomdamId(operator.pomdam.id);
-          return;
-        }
-
-        // A Puspomad-wide operator may have a valid session but no selected
-        // target Pomdam saved on this browser yet. Keep the session and ask for a selection.
-        if (isPuspomadOperatorContext(access, session.user.email)) {
-          clearRememberedPomdamId();
-          setActiveOperator(null);
           return;
         }
 
@@ -286,15 +432,11 @@ export default function App() {
   }, []);
 
   async function logout() {
-    try {
-      if (activeOperator && supabase) {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-      }
-    } finally {
-      clearRememberedPomdamId();
-      setActiveOperator(null);
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     }
+    setActiveOperator(null);
   }
 
   if (!sessionReady) {
@@ -306,6 +448,6 @@ export default function App() {
   }
 
   return activeOperator
-    ? <SignedInPage operator={activeOperator} onLogout={logout} />
+    ? <DashboardPage operator={activeOperator} onLogout={logout} />
     : <LoginPage onSuccess={setActiveOperator} />;
 }
