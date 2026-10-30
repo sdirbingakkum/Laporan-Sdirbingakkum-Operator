@@ -254,3 +254,28 @@ button:disabled { cursor: not-allowed; }
   object-fit: contain;
   filter: drop-shadow(0 6px 15px rgba(0, 0, 0, .24));
 }
+
+
+/* Preview-only login simulation. This is deliberately distinct from a verified session. */
+.demo-hint {
+  margin-top: 13px;
+  padding: 9px 11px;
+  border: 1px solid rgba(177, 138, 66, .25);
+  border-radius: 8px;
+  background: #f8f1e2;
+  color: #896a37;
+  font-size: 8px;
+  line-height: 1.6;
+  letter-spacing: .1em;
+  font-weight: 900;
+}
+.verified-status--demo {
+  color: #896a37;
+  background: #f4ead5;
+}
+.verified-status--demo span {
+  background: #b18a42;
+}
+.status-demo {
+  color: #9a7335 !important;
+}
