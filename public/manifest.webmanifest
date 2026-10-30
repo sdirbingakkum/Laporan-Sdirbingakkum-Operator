@@ -9,9 +9,9 @@
   "theme_color": "#111a16",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/logo-pomad-prima.webp",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/webp",
       "purpose": "any maskable"
     }
   ]
