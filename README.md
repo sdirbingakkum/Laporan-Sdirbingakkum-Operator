@@ -1,6 +1,6 @@
 # Laporan Sdirbingakkum Operator
 
-Minimal operator login portal for the existing Laporan Sdirbingakkum system.
+Operator portal for the Laporan Sdirbingakkum system.
 
 ## Stack
 - React 19 + TypeScript
@@ -10,21 +10,23 @@ Minimal operator login portal for the existing Laporan Sdirbingakkum system.
 - Cloudflare Pages
 - GitHub Actions
 
-## Login behavior
-- The user selects a Pomdam and enters their existing Supabase Auth password.
-- The client first tries the Pomdam-specific identity `operator_<normalized-code>@puspomad.mil.id`.
-- It also supports the existing Puspomad-wide operator identity `operator@puspomad.mil.id`.
-- A successful password check alone is not enough. The client calls `public.get_my_access_context()` and accepts only `POMDAM_OPERATOR` with the selected Pomdam scope, or `PUSPOMAD_OPERATOR` with `ALL_POMDAM`. Both require `MANAGE_REPORT_DATA`.
-- Database RLS remains the enforcement boundary. The dropdown and remembered Pomdam are never authorization controls.
+## Operator login
+- The login form accepts a Pomdam operator username such as `operator_im`.
+- The username is mapped to the corresponding local Supabase Auth identity: `operator_<normalized-code>@puspomad.mil.id`.
+- After password authentication, the app calls `public.get_my_access_context()` and accepts only `POMDAM_OPERATOR` with a single matching `POMDAM` scope and `MANAGE_REPORT_DATA` capability.
+- Commander accounts and the Puspomad-wide operator account are not accepted by this operator portal.
+- The browser does not create Auth users or set/reset passwords. Each local operator identity must exist in Supabase Auth and have its matching application role, Pomdam scope, and capability.
 
-## Account readiness
-The active Pomdam list is the verified 21-row master-data snapshot from `public.pomdams`. The current backend has a Pomdam-scoped operator identity for Iskandar Muda and a Puspomad-wide operator identity. Other Pomdam-specific accounts must be provisioned by the system administrator before those local identities can sign in.
+## Dashboard and report modules
+The dashboard menu follows the six active rows in `public.report_types`:
+1. Statistik Giat Gakkum
+2. Statistik Laka Lalin
+3. Statistik Pelanggaran
+4. Rekapitulasi Provos TNI AD
+5. Rekapitulasi SIM TNI
+6. Rekap Tindak Pidana
 
-## Security
-- Only the Supabase publishable key is sent to the browser.
-- Never expose service-role or secret keys in this public repository.
-- Never trust browser-supplied role, Pomdam ID, or capability values.
-- This repository does not create or modify Supabase users, passwords, roles, scopes, schema, or RLS policies.
+The menu and placeholder destinations are implemented. Report forms, data queries, calculations, and exports are intentionally not included yet; each module is marked as being prepared until its first report is built.
 
 ## Development
 1. Copy `.env.example` to `.env.local`.
@@ -37,4 +39,4 @@ The active Pomdam list is the verified 21-row master-data snapshot from `public.
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-See `docs/LOGIN.md` and `docs/DEPLOYMENT.md` for the integration and deployment details.
+Only the publishable key belongs in Vite client environment variables. Never expose a Supabase service-role or secret key in this public repository.
