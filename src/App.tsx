@@ -217,8 +217,9 @@ export default function App() {
       return;
     }
 
+    const authClient = client as NonNullable<typeof client>;
     let disposed = false;
-    const { data: authListener } = client.auth.onAuthStateChange((event) => {
+    const { data: authListener } = authClient.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         clearRememberedPomdamId();
         setActiveOperator(null);
@@ -228,7 +229,7 @@ export default function App() {
 
     async function restoreSession() {
       try {
-        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        const { data: sessionData, error: sessionError } = await authClient.auth.getSession();
         if (sessionError) throw sessionError;
 
         const session = sessionData.session;
@@ -237,11 +238,11 @@ export default function App() {
           return;
         }
 
-        const { data, error } = await client.rpc("get_my_access_context");
+        const { data, error } = await authClient.rpc("get_my_access_context");
         if (disposed) return;
 
         if (error || !data) {
-          await client.auth.signOut();
+          await authClient.auth.signOut();
           if (!disposed) setActiveOperator(null);
           return;
         }
@@ -267,7 +268,7 @@ export default function App() {
           return;
         }
 
-        await client.auth.signOut();
+        await authClient.auth.signOut();
         if (!disposed) setActiveOperator(null);
       } catch {
         if (!disposed) setActiveOperator(null);
