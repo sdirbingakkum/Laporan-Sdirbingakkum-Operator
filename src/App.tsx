@@ -16,35 +16,6 @@ type ActiveOperator = {
   mode: "authenticated" | "demo";
 };
 
-function BrandMark({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={compact ? "brand-mark brand-mark--compact" : "brand-mark"}>
-      <img src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
-      <span className="brand-mark__ring" />
-    </div>
-  );
-}
-
-function Icon({ name }: { name: "chevron" | "eye" | "eyeOff" | "lock" | "shield" | "check" | "logout" }) {
-  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
-  switch (name) {
-    case "chevron":
-      return <svg {...common}><path d="m6 9 6 6 6-6" /></svg>;
-    case "eye":
-      return <svg {...common}><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.6" /></svg>;
-    case "eyeOff":
-      return <svg {...common}><path d="m3 3 18 18M10.6 6.2A10.6 10.6 0 0 1 12 6c6.2 0 9.5 6 9.5 6a15.4 15.4 0 0 1-3.1 3.8M6.2 6.9C3.8 8.6 2.5 12 2.5 12s3.3 6 9.5 6c1.3 0 2.5-.3 3.5-.7" /></svg>;
-    case "lock":
-      return <svg {...common}><rect x="4.5" y="10" width="15" height="11" rx="2.2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>;
-    case "shield":
-      return <svg {...common}><path d="M12 3 20 6v5.5c0 5-3.4 8-8 9.5-4.6-1.5-8-4.5-8-9.5V6l8-3Z" /><path d="m8.8 12 2.1 2.1 4.5-4.6" /></svg>;
-    case "check":
-      return <svg {...common}><path d="m5 12.5 4.2 4.2L19.5 6.8" /></svg>;
-    case "logout":
-      return <svg {...common}><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>;
-  }
-}
-
 function operatorEmail(code: string) {
   const slug = code.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   return `operator_${slug}@puspomad.mil.id`;
@@ -81,7 +52,6 @@ function resolveAuthorizedOperator(
 function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => void }) {
   const [selectedPomdamId, setSelectedPomdamId] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -94,20 +64,13 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
     event.preventDefault();
     setErrorMessage("");
 
-    if (!selectedPomdam) {
-      setErrorMessage("Pilih satuan Pomdam terlebih dahulu.");
-      return;
-    }
-    if (!password.trim()) {
-      setErrorMessage("Masukkan password untuk melanjutkan.");
-      return;
-    }
+    if (!selectedPomdam || !password.trim()) return;
     const email = operatorEmail(selectedPomdam.code);
 
-    // Preview-only demonstration: no Supabase session is created and no report data is requested.
+    // Preview demonstration is isolated from Supabase and never requests report data.
     if (import.meta.env.VITE_DEMO_LOGIN_MODE === "true") {
       if (password !== "123456") {
-        setErrorMessage("Password demonstrasi tidak cocok. Gunakan password yang ditampilkan pada catatan demo.");
+        setErrorMessage("Password tidak sesuai.");
         return;
       }
       onSuccess({ pomdam: selectedPomdam, email, mode: "demo" });
@@ -115,287 +78,122 @@ function LoginPage({ onSuccess }: { onSuccess: (operator: ActiveOperator) => voi
     }
 
     if (!isSupabaseConfigured || !supabase) {
-      setErrorMessage("Konfigurasi koneksi belum tersedia. Hubungi administrator sistem.");
+      setErrorMessage("Layanan login belum tersedia.");
       return;
     }
 
     setLoading(true);
-
     let authenticated = false;
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) {
-        setErrorMessage("Kredensial tidak cocok. Periksa Pomdam yang dipilih dan password Anda.");
+        setErrorMessage("Pomdam atau password tidak sesuai.");
         return;
       }
       authenticated = true;
 
       const { data, error: accessError } = await supabase.rpc("get_my_access_context");
-
       if (accessError || !data) {
         await supabase.auth.signOut();
-        setErrorMessage("Akun berhasil dikenali, tetapi hak akses belum dapat diverifikasi. Hubungi administrator.");
+        setErrorMessage("Akses akun tidak dapat diverifikasi.");
         return;
       }
 
       const operator = resolveAuthorizedOperator(data as AccessContext, email, selectedPomdam.id);
       if (!operator) {
         await supabase.auth.signOut();
-        setErrorMessage("Akun ini tidak terdaftar sebagai operator pada Pomdam yang dipilih.");
+        setErrorMessage("Akun tidak memiliki akses ke Pomdam yang dipilih.");
         return;
       }
 
       onSuccess(operator);
     } catch {
       if (authenticated) await supabase.auth.signOut();
-      setErrorMessage("Terjadi kendala saat menghubungi layanan autentikasi. Coba kembali.");
+      setErrorMessage("Tidak dapat terhubung. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="login-shell">
-      <div className="ambient ambient--one" />
-      <div className="ambient ambient--two" />
-      <div className="grain" />
+    <main className="login-page">
+      <section className="login-card" aria-labelledby="login-title">
+        <img className="brand-logo" src="/logo-pomad-prima.webp" alt="POMAD PRIMA" />
+        <h1 id="login-title">Login</h1>
 
-      <header className="topbar">
-        <a className="wordmark" href="/" aria-label="Laporan Sdirbingakkum Operator">
-          <img className="wordmark__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
-          <span className="wordmark__text">
-            <strong>SDIRBINGAKKUM</strong>
-            <small>OPERATOR PORTAL</small>
-          </span>
-        </a>
-        <div className="topbar__right">
-          <span className="secure-dot" />
-          <span>AKSES TERBATAS</span>
-        </div>
-      </header>
-
-      <section className="login-layout">
-        <div className="brand-panel">
-          <div className="brand-panel__eyebrow">
-            <span className="eyebrow-line" />
-            <span>SISTEM PELAPORAN TERPADU</span>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="field-group">
+            <label htmlFor="pomdam">Pomdam</label>
+            <select
+              id="pomdam"
+              value={selectedPomdamId}
+              onChange={(event) => {
+                setSelectedPomdamId(event.target.value);
+                setErrorMessage("");
+              }}
+              required
+              disabled={loading}
+            >
+              <option value="" disabled>Pilih Pomdam</option>
+              {ACTIVE_POMDAMS.map((pomdam) => (
+                <option key={pomdam.id} value={pomdam.id}>
+                  {pomdam.code} — {pomdam.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="brand-emblem-wrap">
-            <div className="brand-emblem-glow" />
-            <BrandMark />
-            <div className="brand-emblem-caption">
-              <span className="brand-emblem-caption__line" />
-              <span>PROFESIONAL · RESPONSIF · INTEGRITAS</span>
-              <span className="brand-emblem-caption__line" />
-            </div>
+          <div className="field-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setErrorMessage("");
+              }}
+              placeholder="Masukkan password"
+              autoComplete="current-password"
+              required
+              disabled={loading}
+            />
           </div>
 
-          <div className="brand-copy">
-            <p className="brand-copy__kicker">PUSAT POLISI MILITER ANGKATAN DARAT</p>
-            <h1>Data yang akurat.<br /><em>Keputusan yang tepat.</em></h1>
-            <p className="brand-copy__description">
-              Satu gerbang kerja bagi operator Pomdam untuk menyusun, memeriksa, dan mengirim laporan secara tertib dan terukur.
-            </p>
-          </div>
+          {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
 
-          <div className="brand-panel__footer">
-            <div className="footer-rule" />
-            <div className="brand-panel__meta">
-              <span>TERINTEGRASI</span>
-              <span className="meta-separator" />
-              <span>TERVERIFIKASI</span>
-              <span className="meta-separator" />
-              <span>TERKENDALI</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-panel">
-          <div className="form-card">
-            <div className="form-card__topline" />
-            <div className="form-card__eyebrow">
-              <span className="form-card__eyebrow-icon"><Icon name="shield" /></span>
-              <span>RUANG OPERATOR</span>
-              <span className="form-card__eyebrow-rule" />
-              <span className="form-card__eyebrow-status">SECURE LOGIN</span>
-            </div>
-
-            <div className="form-heading">
-              <p className="form-heading__overline">SELAMAT DATANG</p>
-              <h2>Masuk ke akun Anda.</h2>
-              <p>Pilih satuan kerja dan masukkan password untuk melanjutkan.</p>
-              {import.meta.env.VITE_DEMO_LOGIN_MODE === "true" && (
-                <div className="demo-hint" role="note">
-                  MODE DEMONSTRASI · PASSWORD 123456 · TANPA AKSES DATA
-                </div>
-              )}
-            </div>
-
-            <form className="login-form" onSubmit={handleSubmit} noValidate>
-              <div className="field-group">
-                <label htmlFor="pomdam">SATUAN POMDAM</label>
-                <div className="select-wrap">
-                  <select
-                    id="pomdam"
-                    value={selectedPomdamId}
-                    onChange={(event) => {
-                      setSelectedPomdamId(event.target.value);
-                      setErrorMessage("");
-                    }}
-                    required
-                    disabled={loading}
-                  >
-                    <option value="" disabled>Pilih Pomdam Anda</option>
-                    {ACTIVE_POMDAMS.map((pomdam) => (
-                      <option key={pomdam.id} value={pomdam.id}>
-                        {pomdam.code} — {pomdam.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="select-chevron"><Icon name="chevron" /></span>
-                </div>
-                <span className="field-hint">Pilih satuan yang terdaftar pada akun operator Anda.</span>
-              </div>
-
-              <div className="field-group">
-                <div className="field-label-row">
-                  <label htmlFor="password">PASSWORD</label>
-                  <span className="field-label-note"><Icon name="lock" /> ENCRYPTED SESSION</span>
-                </div>
-                <div className="password-wrap">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      setErrorMessage("");
-                    }}
-                    placeholder="Masukkan password"
-                    autoComplete="current-password"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                    disabled={loading}
-                  >
-                    <Icon name={showPassword ? "eyeOff" : "eye"} />
-                  </button>
-                </div>
-              </div>
-
-              {errorMessage && (
-                <div className="form-error" role="alert">
-                  <span className="form-error__mark">!</span>
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              <button className="submit-button" type="submit" disabled={loading || !selectedPomdamId || !password}>
-                {loading ? (
-                  <>
-                    <span className="button-spinner" />
-                    MEMVERIFIKASI AKSES
-                  </>
-                ) : (
-                  <>
-                    MASUK KE SISTEM
-                    <span className="submit-button__arrow">↗</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="form-card__divider"><span>KEAMANAN AKUN</span></div>
-
-            <div className="security-note">
-              <span className="security-note__icon"><Icon name="shield" /></span>
-              <p>
-                Akses operator terikat pada satu Pomdam. Sistem akan memeriksa hak akses akun setelah autentikasi berhasil.
-              </p>
-            </div>
-            <div className="form-card__bottom">
-              <span>Belum dapat masuk?</span>
-              <span className="form-card__bottom-muted">Hubungi administrator sistem.</span>
-            </div>
-          </div>
-
-          <div className="form-panel__caption">
-            <span>© SDIRBINGAKKUM</span>
-            <span className="caption-dot" />
-            <span>PORTAL OPERATOR</span>
-          </div>
-        </div>
+          <button className="submit-button" type="submit" disabled={loading || !selectedPomdamId || !password}>
+            {loading ? "Memproses..." : "Masuk"}
+          </button>
+        </form>
       </section>
-
-      <footer className="mobile-footer">
-        <span>SDIRBINGAKKUM</span>
-        <span className="caption-dot" />
-        <span>POMAD PRIMA</span>
-      </footer>
     </main>
   );
 }
 
-function VerifiedPage({ operator, onLogout }: { operator: ActiveOperator; onLogout: () => Promise<void> }) {
-  const [loggingOut, setLoggingOut] = useState(false);
+function SignedInPage({
+  operator,
+  onLogout,
+}: {
+  operator: ActiveOperator;
+  onLogout: () => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+
   async function handleLogout() {
-    setLoggingOut(true);
+    setLoading(true);
     await onLogout();
-    setLoggingOut(false);
+    setLoading(false);
   }
 
   return (
-    <main className="verified-shell">
-      <div className="ambient ambient--one" />
-      <div className="grain" />
-      <header className="topbar">
-        <div className="wordmark">
-          <img className="wordmark__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
-          <span className="wordmark__text"><strong>SDIRBINGAKKUM</strong><small>OPERATOR PORTAL</small></span>
-        </div>
-        <button className="logout-button" onClick={handleLogout} disabled={loggingOut}>
-          <Icon name="logout" /> {loggingOut ? "KELUAR..." : "KELUAR"}
+    <main className="login-page">
+      <section className="login-card signed-in-card">
+        <img className="brand-logo" src="/logo-pomad-prima.webp" alt="POMAD PRIMA" />
+        <h1>{operator.pomdam.displayName}</h1>
+        <button className="submit-button" type="button" onClick={handleLogout} disabled={loading}>
+          {loading ? "Memproses..." : "Keluar"}
         </button>
-      </header>
-      <section className="verified-card">
-        <div className="verified-card__mark"><BrandMark compact /></div>
-        {operator.mode === "demo" ? (
-          <>
-            <div className="verified-status verified-status--demo"><span><Icon name="shield" /></span> MODE DEMONSTRASI · DATA NONAKTIF</div>
-            <p className="verified-kicker">PREVIEW ALUR LOGIN</p>
-            <h1>{operator.pomdam.displayName}</h1>
-            <p className="verified-copy">Login demonstrasi berhasil. Ini hanya simulasi antarmuka; tidak membuat sesi Supabase dan tidak membaca atau mengubah data laporan.</p>
-            <div className="verified-details">
-              <div><span>IDENTITAS DEMO</span><strong>{operator.email}</strong></div>
-              <div><span>LINGKUP</span><strong>PREVIEW SAJA</strong></div>
-              <div><span>AKSES DATA</span><strong className="status-demo">DINONAKTIFKAN</strong></div>
-            </div>
-            <div className="verified-footnote"><Icon name="shield" /> Tidak ada autentikasi backend atau permintaan data laporan pada mode ini.</div>
-          </>
-        ) : (
-          <>
-            <div className="verified-status"><span><Icon name="check" /></span> AKSES TERVERIFIKASI</div>
-            <p className="verified-kicker">SELAMAT DATANG, OPERATOR</p>
-            <h1>{operator.pomdam.displayName}</h1>
-            <p className="verified-copy">Autentikasi dan pemeriksaan hak akses Pomdam berhasil. Ruang kerja operator siap dilanjutkan pada tahap berikutnya.</p>
-            <div className="verified-details">
-              <div><span>IDENTITAS LOGIN</span><strong>{operator.email}</strong></div>
-              <div><span>ROLE</span><strong>OPERATOR POMDAM</strong></div>
-              <div><span>STATUS</span><strong className="status-active">TERAUTENTIKASI</strong></div>
-            </div>
-            <div className="verified-footnote"><Icon name="shield" /> Hak akses tetap ditegakkan oleh Supabase Row Level Security.</div>
-          </>
-        )}
       </section>
     </main>
   );
@@ -411,18 +209,17 @@ export default function App() {
       return;
     }
 
-    const client = supabase;
-    if (!client) {
+    if (!supabase) {
       setSessionReady(true);
       return;
     }
-    const authClient = client as NonNullable<typeof client>;
 
     let disposed = false;
+    const client = supabase;
 
     async function restoreSession() {
       try {
-        const { data: sessionData, error: sessionError } = await authClient.auth.getSession();
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
         if (sessionError) throw sessionError;
 
         const session = sessionData.session;
@@ -431,7 +228,7 @@ export default function App() {
           return;
         }
 
-        const { data, error } = await authClient.rpc("get_my_access_context");
+        const { data, error } = await client.rpc("get_my_access_context");
         if (disposed) return;
 
         const operator = !error && data
@@ -441,7 +238,7 @@ export default function App() {
         if (operator) {
           setActiveOperator(operator);
         } else {
-          await authClient.auth.signOut();
+          await client.auth.signOut();
           if (!disposed) setActiveOperator(null);
         }
       } catch {
@@ -452,8 +249,7 @@ export default function App() {
     }
 
     void restoreSession();
-
-    const { data: authListener } = authClient.auth.onAuthStateChange((event) => {
+    const { data: authListener } = client.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setActiveOperator(null);
         setSessionReady(true);
@@ -475,14 +271,13 @@ export default function App() {
 
   if (!sessionReady) {
     return (
-      <main className="session-checking" role="status" aria-live="polite">
-        <img className="session-checking__logo" src="/logo-pomad-prima.webp" alt="Lambang POMAD PRIMA" />
-        <span>MEMERIKSA SESI</span>
+      <main className="session-checking">
+        <img className="brand-logo" src="/logo-pomad-prima.webp" alt="POMAD PRIMA" />
       </main>
     );
   }
 
   return activeOperator
-    ? <VerifiedPage operator={activeOperator} onLogout={logout} />
+    ? <SignedInPage operator={activeOperator} onLogout={logout} />
     : <LoginPage onSuccess={setActiveOperator} />;
 }
