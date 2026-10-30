@@ -377,12 +377,13 @@ export default function App() {
       setSessionReady(true);
       return;
     }
+    const authClient = client as NonNullable<typeof client>;
 
     let disposed = false;
 
     async function restoreSession() {
       try {
-        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        const { data: sessionData, error: sessionError } = await authClient.auth.getSession();
         if (sessionError) throw sessionError;
 
         const session = sessionData.session;
@@ -401,7 +402,7 @@ export default function App() {
         if (operator) {
           setActiveOperator(operator);
         } else {
-          await client.auth.signOut();
+          await authClient.auth.signOut();
           if (!disposed) setActiveOperator(null);
         }
       } catch {
@@ -413,7 +414,7 @@ export default function App() {
 
     void restoreSession();
 
-    const { data: authListener } = client.auth.onAuthStateChange((event) => {
+    const { data: authListener } = authClient.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setActiveOperator(null);
         setSessionReady(true);
