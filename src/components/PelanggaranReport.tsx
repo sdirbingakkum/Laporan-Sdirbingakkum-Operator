@@ -3,9 +3,8 @@ import type { ActiveOperator } from "../lib/operator-auth";
 import {
   VIOLATION_GROUPS,
   VIOLATION_REQUIRED_CODES,
-  countViolationReported,
-  getViolationInvalidCodes,
   getViolationTotal,
+  isValidViolationValue,
   type ViolationCategoryCode,
   type ViolationField,
 } from "../lib/violation-report";
@@ -333,8 +332,14 @@ export default function PelanggaranReport({
     () => fields.flatMap((field) => ["PA", "BA", "TA", "PNS"].map((rank) => field.code + "_" + rank)),
     [fields],
   );
-  const reportedCount = useMemo(() => countViolationReported(values), [values]);
-  const invalidCodes = useMemo(() => getViolationInvalidCodes(values), [values]);
+  const reportedCount = useMemo(
+    () => formCodes.filter((code) => (values[code] ?? "").trim() !== "").length,
+    [formCodes, values],
+  );
+  const invalidCodes = useMemo(
+    () => formCodes.filter((code) => !isValidViolationValue(values[code] ?? "")),
+    [formCodes, values],
+  );
   const tatibCodes = formCodes.filter((code) => code.startsWith("B"));
   const lalinCodes = formCodes.filter((code) => code.startsWith("C"));
   const tatibTotal = useMemo(() => getViolationTotal(values, tatibCodes), [values, tatibCodes]);
@@ -360,7 +365,7 @@ export default function PelanggaranReport({
   }
 
   async function handleSave() {
-    if (!supabase || !canSave || saving || !period) return;
+    if (!supabase || !canSave || saving) return;
     setSaving(true);
     setErrorMessage("");
     setSaveMessage("");
@@ -375,6 +380,43 @@ export default function PelanggaranReport({
       }
 
       const now = new Date().toISOString();
+
+      let targetPeriod = period;
+      if (!targetPeriod) {
+        const dates = getMonthDates(monthValue);
+        const label = formatMonthLabel(monthValue);
+        const { data: insertedPeriod, error: insertPeriodError } = await supabase
+          .from("report_periods")
+          .insert({
+            period_type: "MONTH",
+            period_start: dates.start,
+            period_end: dates.end,
+            report_year: dates.year,
+            fiscal_year: dates.year,
+            report_month: dates.month,
+            period_label: label,
+            source_label: label,
+          })
+          .select("id,period_label,period_start,period_end,report_year,report_month")
+          .single();
+
+        if (insertPeriodError) {
+          if (insertPeriodError.code !== "23505") throw insertPeriodError;
+          const { data: existingPeriod, error: findPeriodError } = await supabase
+            .from("report_periods")
+            .select("id,period_label,period_start,period_end,report_year,report_month")
+            .eq("period_type", "MONTH")
+            .eq("report_year", dates.year)
+            .eq("report_month", dates.month)
+            .maybeSingle();
+          if (findPeriodError || !existingPeriod) throw findPeriodError ?? insertPeriodError;
+          targetPeriod = existingPeriod as PeriodRow;
+        } else {
+          targetPeriod = insertedPeriod as PeriodRow;
+        }
+      }
+      if (!targetPeriod) throw new Error("Periode laporan tidak dapat disiapkan.");
+
       const personnelRows = await supabase.from("personnel_categories")
         .select("id,code,name,active")
         .eq("active", true);
@@ -390,7 +432,7 @@ export default function PelanggaranReport({
           const reported = rawValue !== "";
           const rank = personnelByCode.get(rankCode)!;
           return [{
-            period_id: period.id,
+            period_id: targetPeriod!.id,
             pomdam_id: operator.pomdam.id,
             violation_id: field.violationId,
             violation_version_id: field.violationVersionId,
@@ -408,7 +450,7 @@ export default function PelanggaranReport({
       const { error: readError, data: existingFacts } = await supabase
         .from("violation_records")
         .select("id,violation_id,violation_version_id,personnel_category_id,source_cell_id")
-        .eq("period_id", period.id)
+        .eq("period_id", targetPeriod.id)
         .eq("pomdam_id", operator.pomdam.id);
       if (readError) throw readError;
 
@@ -468,7 +510,7 @@ export default function PelanggaranReport({
       } else {
         const { error } = await supabase.from("report_submissions").insert({
           report_type_id: reportTypeId,
-          period_id: period.id,
+          period_id: targetPeriod.id,
           pomdam_id: operator.pomdam.id,
           submitted_by: userData.user.id,
           status: "SUBMITTED",
