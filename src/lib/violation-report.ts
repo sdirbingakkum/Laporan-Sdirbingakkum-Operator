@@ -33,7 +33,7 @@ export const VIOLATION_GROUPS = [
 export function isValidViolationValue(value: string): boolean {
   const normalized = value.trim();
   if (normalized === "") return true;
-  if (!/^\\d+$/.test(normalized)) return false;
+  if (!/^\d+$/.test(normalized)) return false;
   return Number.isSafeInteger(Number(normalized));
 }
 
