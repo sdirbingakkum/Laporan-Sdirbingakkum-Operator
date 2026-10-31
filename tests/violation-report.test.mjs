@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   VIOLATION_GROUPS,
   VIOLATION_REQUIRED_CODES,
+  VIOLATION_INPUT_CODES,
   countViolationReported,
   getViolationInvalidCodes,
   getViolationTotal,
@@ -19,18 +20,20 @@ test("each violation code is captured against four rank groups", () => {
   const fieldCodes = VIOLATION_REQUIRED_CODES.flatMap((code) => ["PA", "BA", "TA", "PNS"].map((rank) => code + "_" + rank));
   assert.equal(fieldCodes.length, 68);
   assert.equal(new Set(fieldCodes).size, 68);
+  assert.deepEqual(VIOLATION_INPUT_CODES, fieldCodes);
 
-  const formValues = Object.fromEntries(fieldCodes.map((code) => [code, ""]));
+  const formValues = Object.fromEntries(VIOLATION_INPUT_CODES.map((code) => [code, ""]));
   formValues.B1_PA = "0";
   formValues.C6_PNS = "3";
-  assert.equal(fieldCodes.filter((code) => (formValues[code] ?? "").trim() !== "").length, 2);
-  assert.equal(fieldCodes.filter((code) => !/^\\d+$/.test((formValues[code] ?? "").trim()) && (formValues[code] ?? "").trim() !== "").length, 0);
+  assert.equal(countViolationReported(formValues), 2);
+  assert.deepEqual(getViolationInvalidCodes(formValues), []);
   formValues.B2_TA = "-1";
-  assert.equal(fieldCodes.filter((code) => !/^-?\\d+$/.test((formValues[code] ?? "").trim()) && (formValues[code] ?? "").trim() !== "").length, 1);
+  assert.equal(countViolationReported(formValues), 2);
+  assert.deepEqual(getViolationInvalidCodes(formValues), ["B2_TA"]);
 });
 
 test("blank values are unreported while zero is a valid reported amount", () => {
-  const values = { B1_PA: "", B1_BA: "0", B1_TA: "2" };
+  const values = { B1_PA: "", B1_BA: "0", B1_TA: "2", B1_PNS: "" };
   assert.equal(countViolationReported(values), 2);
   assert.equal(getViolationTotal(values, ["B1_PA", "B1_BA", "B1_TA"]), null);
   assert.equal(getViolationTotal({ B1_PA: "0", B1_BA: "0", B1_TA: "2" }, ["B1_PA", "B1_BA", "B1_TA"]), 2);
@@ -51,8 +54,8 @@ test("only non-negative safe integers or blanks are accepted", () => {
 });
 
 test("invalid values are reported by exact field code", () => {
-  const values = Object.fromEntries(VIOLATION_REQUIRED_CODES.flatMap((code) => ["PA", "BA", "TA", "PNS"].map((rank) => [code + "_" + rank, ""])));
+  const values = Object.fromEntries(VIOLATION_INPUT_CODES.map((code) => [code, ""]));
   values.B2_PA = "-5";
   values.C4_PNS = "1.5";
-  assert.deepEqual(getViolationInvalidCodes(values), ["B2", "C4"]);
+  assert.deepEqual(getViolationInvalidCodes(values), ["B2_PA", "C4_PNS"]);
 });
