@@ -1,0 +1,215 @@
+/* SIM TNI report */
+.sim-tni-report { --sim-tni-accent: #4e82ca; }
+.sim-tni-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sim-tni-summary-grid .gakkum-summary-primary {
+  border-color: #d5e2f3;
+  background: linear-gradient(120deg, #fff 0%, #f4f8fd 100%);
+}
+.sim-tni-activity-list { display: grid; gap: 12px; }
+.sim-tni-activity-card {
+  overflow: hidden;
+  border: 1px solid #e2e8ef;
+  border-radius: 10px;
+  background: #fff;
+}
+.sim-tni-activity-heading {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #edf1f4;
+  background: #fafbfd;
+}
+.sim-tni-activity-number {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eaf1fa;
+  color: #527aa9;
+  font-size: 9px;
+  font-weight: 850;
+}
+.sim-tni-activity-copy { min-width: 0; }
+.sim-tni-activity-copy h3 {
+  margin: 0;
+  color: #34485e;
+  font-size: 12px;
+  font-weight: 750;
+}
+.sim-tni-activity-copy small {
+  display: block;
+  margin-top: 4px;
+  color: #95a1ae;
+  font-size: 8px;
+}
+.sim-tni-activity-total {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.sim-tni-activity-total span {
+  color: #96a3b1;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+.sim-tni-activity-total strong {
+  color: #456f9e;
+  font-size: 14px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.sim-tni-type-head,
+.sim-tni-input-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+  padding: 0 16px;
+}
+.sim-tni-type-head {
+  padding-top: 11px;
+  color: #8998a8;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-align: center;
+}
+.sim-tni-input-grid { padding-top: 7px; padding-bottom: 14px; }
+.sim-tni-input-control {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.sim-tni-input-label {
+  overflow: hidden;
+  color: #8b99a8;
+  font-size: 8px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.sim-tni-input-control input {
+  width: 100%;
+  min-width: 0;
+  height: 39px;
+  padding: 0 7px;
+  border: 1px solid #dce4eb;
+  border-radius: 7px;
+  outline: 0;
+  background: #fff;
+  color: #2d4056;
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.sim-tni-input-control input:focus {
+  border-color: #8caad0;
+  box-shadow: 0 0 0 3px rgba(78, 130, 202, .09);
+}
+.sim-tni-input-control input::placeholder { color: #b5bec8; }
+.sim-tni-input-control input:disabled {
+  color: #798899;
+  opacity: 1;
+  -webkit-text-fill-color: #798899;
+}
+.sim-tni-input-control input:disabled { border-color: #edf0f3; background: #f8fafb; }
+.sim-tni-a11y-total {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.sim-tni-derived-panel {
+  padding: 17px;
+  border: 1px solid #dce5ed;
+  border-radius: 10px;
+  background: linear-gradient(110deg, #fff 0%, #f7f9fb 100%);
+}
+.sim-tni-derived-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sim-tni-derived-heading .eyebrow { margin-bottom: 5px; }
+.sim-tni-derived-heading h2 {
+  margin: 0;
+  color: #2b3c50;
+  font-size: 15px;
+  font-weight: 750;
+}
+.sim-tni-derived-heading > strong {
+  color: #345f92;
+  font-size: 24px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.sim-tni-derived-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+.sim-tni-derived-card {
+  display: grid;
+  gap: 6px;
+  padding: 11px 10px;
+  border: 1px solid #e3eaf1;
+  border-radius: 7px;
+  background: #fff;
+}
+.sim-tni-derived-card span {
+  color: #91a0af;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.sim-tni-derived-card strong {
+  color: #405b78;
+  font-size: 16px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.sim-tni-overview-note {
+  border-color: #d5e2f3;
+  background: #fbfdff;
+}
+
+@media (max-width: 900px) {
+  .sim-tni-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim-tni-summary-grid .gakkum-summary-primary { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .sim-tni-activity-heading { padding: 11px 12px; gap: 8px; }
+  .sim-tni-activity-copy h3 { font-size: 11px; }
+  .sim-tni-type-head,
+  .sim-tni-input-grid { gap: 6px; padding-right: 10px; padding-left: 10px; }
+  .sim-tni-type-head { font-size: 7px; }
+  .sim-tni-input-label { font-size: 7px; }
+  .sim-tni-input-control input { height: 37px; padding: 0 3px; font-size: 12px; }
+  .sim-tni-derived-panel { padding: 13px; }
+  .sim-tni-derived-card { padding: 9px 7px; }
+  .sim-tni-derived-card span { font-size: 7px; }
+  .sim-tni-derived-card strong { font-size: 13px; }
+}
+@media (max-width: 390px) {
+  .sim-tni-activity-number { width: 25px; height: 25px; flex-basis: 25px; }
+  .sim-tni-activity-copy h3 { font-size: 10px; }
+  .sim-tni-activity-total span { font-size: 6px; }
+  .sim-tni-activity-total strong { font-size: 12px; }
+  .sim-tni-type-head,
+  .sim-tni-input-grid { gap: 4px; }
+  .sim-tni-input-control input { height: 35px; font-size: 11px; }
+  .sim-tni-derived-grid { gap: 5px; }
+  .sim-tni-derived-card { padding: 8px 5px; }
+}
