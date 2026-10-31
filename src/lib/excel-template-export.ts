@@ -16,7 +16,6 @@ export type ReportExportResult = {
 
 const MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const XMLNS = "http://www.w3.org/2000/xmlns/";
 const POMDAM_ALIASES: Record<string, string[]> = {
   "XV/PTM": ["XV/PTM", "XVI/PTM"],
   "XXII/TB": ["XXII/TB", "XX/TB"],
@@ -58,7 +57,9 @@ function xmlBytes(document: Document): Uint8Array {
 }
 
 function localElements(parent: ParentNode, localName: string): Element[] {
-  return Array.from(parent.children ?? []).filter((item) => item.localName === localName) as Element[];
+  return Array.from(parent.childNodes).filter(
+    (item): item is Element => item.nodeType === 1 && (item as Element).localName === localName,
+  );
 }
 
 function child(parent: ParentNode, localName: string): Element | null {
@@ -199,7 +200,7 @@ function setText(context: SheetContext, address: string, value: string): void {
   cell.setAttribute("t", "inlineStr");
   const inline = context.document.createElementNS(MAIN_NS, "is");
   const text = context.document.createElementNS(MAIN_NS, "t");
-  if (value.startsWith(" ") || value.endsWith(" ")) text.setAttributeNS(XMLNS, "xml:space", "preserve");
+  if (value.startsWith(" ") || value.endsWith(" ")) text.setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:space", "preserve");
   text.textContent = value;
   inline.appendChild(text);
   cell.appendChild(inline);
@@ -226,14 +227,14 @@ function clearNumericCell(context: SheetContext, cell: Element): void {
   if (!address) return;
   const formula = child(cell, "f");
   const value = child(cell, "v")?.textContent ?? "";
-  const isInline = type === "inlineStr";
-  const isText = type === "s" || type === "str" || isInline;
-  const isError = type === "e" || /^#(REF|VALUE|DIV\/0|NAME|N\/A|NUM|NULL)!?$/i.test(value);
+  const textValue = type === "s" ? context.sharedStrings[Number(value)] ?? ""
+    : type === "inlineStr" ? getCellText(context, address)
+      : type === "str" ? value : "";
+  const isText = type === "s" || type === "str" || type === "inlineStr";
+  const isError = type === "e" || /^#(REF|VALUE|DIV\/0|NAME|N\/A|NUM|NULL)!?$/i.test(value) || /^#(REF|VALUE|DIV\/0|NAME|N\/A|NUM|NULL)!?$/i.test(textValue);
   const isNumeric = !isText && (value === "" || /^[-+]?\d+(?:\.\d+)?(?:[Ee][-+]?\d+)?$/.test(value));
-  const sharedText = type === "s" ? context.sharedStrings[Number(value)] ?? "" : "";
-  const numericString = isText && !isInline && /^\s*[-+]?\d+(?:\.\d+)?\s*$/.test(sharedText);
-  const errorString = isText && (isInline ? getCellText(context, address) : sharedText).startsWith("#");
-  if (formula || isError || isNumeric || numericString || errorString) clearCell(context, address);
+  const numericString = isText && /^\s*[-+]?\d+(?:\.\d+)?\s*$/.test(textValue);
+  if (formula || isError || isNumeric || numericString) clearCell(context, address);
 }
 
 function clearDataRange(context: SheetContext, startColumn: string, endColumn: string, startRow: number, endRow: number): void {
@@ -361,6 +362,37 @@ function removeExternalLinks(files: Record<string, Uint8Array>): void {
   }
 }
 
+function scrubUnusedSharedStrings(files: Record<string, Uint8Array>, contexts: Map<string, SheetContext>): void {
+  const path = "xl/sharedStrings.xml";
+  if (!files[path]) return;
+  const used = new Set<number>();
+  for (const context of contexts.values()) {
+    for (const row of context.rows.values()) {
+      for (const cell of localElements(row, "c")) {
+        if (cell.getAttribute("t") !== "s") continue;
+        const rawIndex = child(cell, "v")?.textContent ?? "";
+        const index = Number(rawIndex);
+        if (Number.isInteger(index) && index >= 0) used.add(index);
+      }
+    }
+  }
+  const doc = parseXml(files[path], path);
+  const items = localElements(doc.documentElement, "si");
+  for (let index = 0; index < items.length; index++) {
+    if (used.has(index)) continue;
+    const item = items[index];
+    while (item.firstChild) item.removeChild(item.firstChild);
+    item.appendChild(doc.createElementNS(MAIN_NS, "t"));
+  }
+  const count = [...contexts.values()].reduce(
+    (sum, context) => sum + [...context.rows.values()].flatMap((row) => localElements(row, "c")).filter((cell) => cell.getAttribute("t") === "s").length,
+    0,
+  );
+  doc.documentElement.setAttribute("count", String(count));
+  doc.documentElement.setAttribute("uniqueCount", String(items.length));
+  files[path] = xmlBytes(doc);
+}
+
 function forceRecalculation(files: Record<string, Uint8Array>): void {
   const path = "xl/workbook.xml";
   if (!files[path]) return;
@@ -395,6 +427,7 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
   const notices = ["File diisi untuk " + payload.pomdamName + " saja; kolom Pomdam lain dikosongkan."];
   clearDataRange(context, "C", "DH", 5, 28);
   clearDataRange(context, "C", "X", 49, 72);
+  clearDataRange(context, "C", "W", 92, 93);
   clearDataRange(context, "C", "G", 151, 174);
   clearDataRange(context, "C", "G", 191, 191);
 
@@ -471,6 +504,12 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
   }
   for (const row of [...Array.from({ length: 11 }, (_, index) => 52 + index), ...Array.from({ length: 6 }, (_, index) => 65 + index), 63, 71, 72]) {
     setFormula(context, "X" + row, formulaSum(Array.from({ length: 21 }, (_, index) => columnLetters(3 + index) + row)));
+  }
+  for (let col = 3; col <= 23; col++) {
+    const headerColumn = columnLetters(col);
+    if (!matchesPomdamLabel(getCellText(context, headerColumn + "91"), payload.pomdamCode)) continue;
+    setFormula(context, headerColumn + "92", formulaSum(VIOLATION_CODES.filter((code) => code.startsWith("B")).map((code) => groupTotalColumn + VIOLATION_ROW[code])));
+    setFormula(context, headerColumn + "93", formulaSum(VIOLATION_CODES.filter((code) => code.startsWith("C")).map((code) => groupTotalColumn + VIOLATION_ROW[code])));
   }
 
   const finalRow = (code: string): number => code.startsWith("B") ? 153 + Number(code.slice(1)) : 166 + Number(code.slice(1));
@@ -632,6 +671,7 @@ export async function exportReportFromTemplate(file: File, payload: ReportExport
   }
 
   for (const [path, context] of contexts) files[path] = xmlBytes(context.document);
+  scrubUnusedSharedStrings(files, contexts);
   removeChartCaches(files);
   removeExternalLinks(files);
   forceRecalculation(files);
