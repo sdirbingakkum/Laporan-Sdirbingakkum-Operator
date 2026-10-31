@@ -19,6 +19,14 @@ test("each violation code is captured against four rank groups", () => {
   const fieldCodes = VIOLATION_REQUIRED_CODES.flatMap((code) => ["PA", "BA", "TA", "PNS"].map((rank) => code + "_" + rank));
   assert.equal(fieldCodes.length, 68);
   assert.equal(new Set(fieldCodes).size, 68);
+
+  const formValues = Object.fromEntries(fieldCodes.map((code) => [code, ""]));
+  formValues.B1_PA = "0";
+  formValues.C6_PNS = "3";
+  assert.equal(fieldCodes.filter((code) => (formValues[code] ?? "").trim() !== "").length, 2);
+  assert.equal(fieldCodes.filter((code) => !/^\\d+$/.test((formValues[code] ?? "").trim()) && (formValues[code] ?? "").trim() !== "").length, 0);
+  formValues.B2_TA = "-1";
+  assert.equal(fieldCodes.filter((code) => !/^-?\\d+$/.test((formValues[code] ?? "").trim()) && (formValues[code] ?? "").trim() !== "").length, 1);
 });
 
 test("blank values are unreported while zero is a valid reported amount", () => {
