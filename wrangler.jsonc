@@ -1,0 +1,12 @@
+{
+  "name": "laporan-sdirbingakkum-operator",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-10-31",
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "previews": {}
+}

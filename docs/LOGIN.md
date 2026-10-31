@@ -1,45 +1,47 @@
-# Operator login
+# Operator login and dashboard
 
-## Interface
-The login screen is intentionally minimal:
+## Login interface
+The login screen keeps the minimal approved layout:
 - POMAD PRIMA logo
-- Login heading
-- Pomdam selector
+- Pomdam dropdown
 - Password field
 - Masuk button
 
-The same layout is responsive on desktop and mobile. There are no demo credentials, slogans, promotional copy, or decorative military-themed elements.
+The operator selects their Pomdam from the active master list. The app derives the operator username automatically from the selected Pomdam code. For example, Iskandar Muda maps to `operator_im`; the corresponding Supabase Auth identity is `operator_im@puspomad.mil.id`.
 
 ## Authentication flow
-1. The user selects one of the 21 active Pomdam values from the audited `public.pomdams` master-data snapshot.
-2. The client tries the corresponding local operator identity: `operator_<normalized-code>@puspomad.mil.id`.
-3. If those credentials are rejected, the client also tries the existing Puspomad-wide operator identity: `operator@puspomad.mil.id`.
-4. After Supabase Auth succeeds, the client calls `public.get_my_access_context()`.
-5. The client accepts access only when the user is authenticated/configured and has `MANAGE_REPORT_DATA`:
-   - `POMDAM_OPERATOR` must have `POMDAM` scope containing the selected Pomdam UUID, and the authenticated email must match that Pomdam's local operator identity.
-   - `PUSPOMAD_OPERATOR` must have `ALL_POMDAM` scope and use the Puspomad-wide operator identity.
-6. Any mismatch signs out the authenticated session and denies entry.
+1. The operator selects one of the 21 active Pomdam values from the master list.
+2. The app derives `operator_<normalized-code>` from the selected Pomdam.
+3. It maps that username to the matching Supabase Auth email identity `operator_<normalized-code>@puspomad.mil.id`.
+4. It authenticates with that identity's existing Supabase password.
+5. It calls `public.get_my_access_context()`.
+6. The app accepts only `POMDAM_OPERATOR`, a `POMDAM` scope containing exactly the selected Pomdam, and `MANAGE_REPORT_DATA`.
+7. Commander accounts and the Puspomad-wide operator account are not accepted in this portal.
 
-The Pomdam dropdown is a user-context selector, not an authorization boundary. Scope and capability values always come from the Supabase RPC, and data authorization remains the database's responsibility.
+The dropdown selects the operator's Pomdam; it does not grant access by itself. Account creation and password changes are not performed by this login form. Each local Auth user and matching application-role/scope records must be provisioned for that Pomdam before login is available.
 
 ## Session handling
-- The Supabase session is restored when the app opens.
-- On restore, the client calls `get_my_access_context()` again rather than trusting a previously stored role or scope.
-- A local Pomdam operator is restored from its single active database scope.
-- The Puspomad-wide operator's selected Pomdam is remembered only as a user-interface preference. It does not grant access.
-- Logout calls Supabase Auth sign-out and clears the remembered Pomdam selection.
+- An existing Supabase session is revalidated through `get_my_access_context()` when the app opens.
+- A session is restored only when it belongs to a valid local Pomdam operator with exactly one Pomdam scope.
+- Other application roles are signed out of this operator portal.
+- Logout calls Supabase Auth sign-out.
 
-## Existing account availability
-The current shared Supabase project contains:
-- A `POMDAM_OPERATOR` identity scoped to Iskandar Muda.
-- A `PUSPOMAD_OPERATOR` identity scoped to `ALL_POMDAM`.
+## Dashboard
+After login, the operator lands on the dashboard for their own Pomdam. Six report menus mirror the active `public.report_types` master:
+- Statistik Giat Gakkum
+- Statistik Laka Lalin
+- Statistik Pelanggaran
+- Rekapitulasi Provos TNI AD
+- Rekapitulasi SIM TNI
+- Rekap Tindak Pidana
 
-The other active Pomdam values are present in the dropdown, but their local operator Auth identities and scopes have not been provisioned yet. They can be used by the Puspomad-wide operator account. A local operator for another Pomdam must be provisioned by an administrator with an individual password and the correct database role/scope before login will succeed.
+Each menu currently opens a preparation placeholder. No mock records or report totals are displayed. The first report's entry form and data presentation will be implemented as a separate stage.
 
-## Security and scope
+## Existing account readiness
+The current shared project previously had a local operator account for Iskandar Muda and a Puspomad-wide operator account. The Puspomad-wide login is deliberately no longer accepted by this portal. The other Pomdam-specific Auth users and their scopes still need to be provisioned before all 21 Pomdam choices can log in.
+
+## Security notes
 - The frontend uses only the Supabase publishable key.
-- No service-role or secret key is included in the client.
-- No Auth users, passwords, roles, Pomdam scopes, database rows, schema, or RLS policies are created or changed by this app.
-- The app does not trust user-editable JWT metadata for authorization.
-- The current post-login screen is a minimal authenticated landing state. Report-entry forms and data modules are a separate next development stage.
-- Before report data is added to the client, review and tighten existing reporting-table RLS policies. Authentication and UI scope checks do not replace row-level database authorization.
+- No service-role or secret key is included in the browser bundle.
+- The frontend does not trust user-editable JWT metadata for role or scope.
+- Before report data is connected, review the existing reporting-table RLS policies for Pomdam-level data isolation.
