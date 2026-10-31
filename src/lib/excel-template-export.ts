@@ -537,7 +537,9 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
 
   setText(context, "A1", "REKAP DATA BULAN " + month.name + " " + month.year);
   writePeriodCell(context, "A45", month);
+  setText(context, "S42", "Penegakan Hukum Periode Bulan " + month.name + " " + month.year);
   setText(context, "A147", "BIDANG PENEGAKAN HUKUM BULAN " + month.name + " " + month.year);
+  setText(context, "G144", "Penegakan Hukum Bulan " + month.name + " " + month.year);
   setText(context, "BB1", "LAPORAN GAKKUM BULAN " + month.name + " " + month.year);
   return notices;
 }

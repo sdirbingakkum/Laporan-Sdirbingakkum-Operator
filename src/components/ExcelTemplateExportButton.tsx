@@ -46,7 +46,7 @@ export default function ExcelTemplateExportButton({
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       setFeedback("Excel berhasil dibuat. " + result.notices.join(" "));
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Tidak dapat membuat file Excel.");
