@@ -78,7 +78,7 @@ export const LAKA_REPORT_GROUPS = [
 export function isValidLakaValue(value: string): boolean {
   const normalized = value.trim();
   if (normalized === "") return true;
-  if (!/^\\d+$/.test(normalized)) return false;
+  if (!/^\d+$/.test(normalized)) return false;
   return Number.isSafeInteger(Number(normalized));
 }
 
