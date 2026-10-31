@@ -4,7 +4,7 @@ export function criminalOffenseInputCode(
   versionId: string,
   personnelCategoryId: string,
 ): string {
-  return ${versionId}:${personnelCategoryId};
+  return versionId + ":" + personnelCategoryId;
 }
 
 export function isValidCriminalOffenseValue(value: string): boolean {
