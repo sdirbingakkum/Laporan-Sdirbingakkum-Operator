@@ -157,7 +157,7 @@ export default function PelanggaranReport({
           userResult,
         ] = await Promise.all([
           supabase.from("violation_data_contracts")
-            .select("id,report_type_id,status")
+            .select("id,report_type_id,status,code")
             .eq("code", CONTRACT_CODE)
             .eq("status", "ACTIVE")
             .maybeSingle(),
