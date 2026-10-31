@@ -33,6 +33,11 @@ export const REPORT_MODULES: ReportModule[] = [
   {
     code: "TINDAK_PIDANA",
     title: "Rekap Tindak Pidana",
-    description: "Rekapitulasi data tindak pidana.",
+    description: "Rekapitulasi data tindak pidana menurut 105 jenis dan empat golongan personel.",
+  },
+  {
+    code: "K9",
+    title: "Statistik K9",
+    description: "Bagian K9 disiapkan; menunggu kontrak data dan master input resmi.",
   },
 ];
