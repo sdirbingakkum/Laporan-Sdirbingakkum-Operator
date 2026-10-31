@@ -526,7 +526,7 @@ export default function ProvosReport({
         if (existingError) throw existingError;
 
         const existingByDimension = new Map<string, StoredRecord>();
-        for (const row of (existingData ?? []) as StoredRecord[]) {
+        for (const row of (existingData ?? []) as unknown as StoredRecord[]) {
           const dimensionId = String(row[config.dimensionColumn] ?? "");
           if (dimensionId) existingByDimension.set(dimensionId, row);
         }
