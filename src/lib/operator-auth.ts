@@ -11,38 +11,32 @@ export type AccessContext = {
 export type ActiveOperator = {
   pomdam: Pomdam;
   email: string;
-  roleCode: "POMDAM_OPERATOR" | "PUSPOMAD_OPERATOR";
+  username: string;
+  roleCode: "POMDAM_OPERATOR";
 };
 
-export const PUSPOMAD_OPERATOR_EMAIL = "operator@puspomad.mil.id";
-export const SELECTED_POMDAM_STORAGE_KEY = "laporan-sdirbingakkum.operator-pomdam";
+export function operatorUsername(code: string): string {
+  const slug = code
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `operator_${slug}`;
+}
+
+export function operatorEmail(code: string): string {
+  return `${operatorUsername(code)}@puspomad.mil.id`;
+}
+
+export function pomdamFromOperatorUsername(value: string): Pomdam | null {
+  const normalized = value.trim().toLowerCase().replace(/@puspomad\.mil\.id$/, "");
+  return ACTIVE_POMDAMS.find((pomdam) => operatorUsername(pomdam.code) === normalized) ?? null;
+}
 
 function hasReportManagementAccess(access: AccessContext): boolean {
   return Boolean(
     access.authenticated &&
     access.configured &&
     access.capabilities?.includes("MANAGE_REPORT_DATA"),
-  );
-}
-
-export function operatorEmail(code: string): string {
-  const slug = code.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return `operator_${slug}@puspomad.mil.id`;
-}
-
-export function operatorLoginEmails(code: string): string[] {
-  return [operatorEmail(code), PUSPOMAD_OPERATOR_EMAIL];
-}
-
-export function isPuspomadOperatorContext(
-  access: AccessContext,
-  email: string | null | undefined,
-): boolean {
-  return Boolean(
-    hasReportManagementAccess(access) &&
-    access.role?.code === "PUSPOMAD_OPERATOR" &&
-    access.scope?.type === "ALL_POMDAM" &&
-    email?.trim().toLowerCase() === PUSPOMAD_OPERATOR_EMAIL,
   );
 }
 
@@ -58,44 +52,40 @@ export function resolveAuthorizedOperator(
   if (!pomdam) return null;
 
   if (
-    access.role?.code === "POMDAM_OPERATOR" &&
-    access.scope?.type === "POMDAM"
+    access.role?.code !== "POMDAM_OPERATOR" ||
+    access.scope?.type !== "POMDAM"
   ) {
-    const allowedPomdamIds = new Set(access.scope.pomdam_ids ?? []);
-    if (
-      !allowedPomdamIds.has(pomdam.id) ||
-      operatorEmail(pomdam.code) !== normalizedEmail
-    ) {
-      return null;
-    }
-
-    return { pomdam, email: normalizedEmail, roleCode: "POMDAM_OPERATOR" };
+    return null;
   }
 
-  if (isPuspomadOperatorContext(access, normalizedEmail)) {
-    return { pomdam, email: normalizedEmail, roleCode: "PUSPOMAD_OPERATOR" };
+  const allowedPomdamIds = new Set(access.scope.pomdam_ids ?? []);
+  const username = operatorUsername(pomdam.code);
+
+  if (!allowedPomdamIds.has(pomdam.id) || operatorEmail(pomdam.code) !== normalizedEmail) {
+    return null;
   }
 
-  return null;
+  return {
+    pomdam,
+    email: normalizedEmail,
+    username,
+    roleCode: "POMDAM_OPERATOR",
+  };
 }
 
 export function resolveRestoredOperator(
   access: AccessContext,
   email: string | null | undefined,
-  rememberedPomdamId: string | null,
 ): ActiveOperator | null {
   if (
-    access.role?.code === "POMDAM_OPERATOR" &&
-    access.scope?.type === "POMDAM"
+    access.role?.code !== "POMDAM_OPERATOR" ||
+    access.scope?.type !== "POMDAM"
   ) {
-    const ids = [...new Set(access.scope.pomdam_ids ?? [])];
-    if (ids.length !== 1) return null;
-    return resolveAuthorizedOperator(access, email, ids[0]);
+    return null;
   }
 
-  if (isPuspomadOperatorContext(access, email) && rememberedPomdamId) {
-    return resolveAuthorizedOperator(access, email, rememberedPomdamId);
-  }
+  const pomdamIds = [...new Set(access.scope.pomdam_ids ?? [])];
+  if (pomdamIds.length !== 1) return null;
 
-  return null;
+  return resolveAuthorizedOperator(access, email, pomdamIds[0]);
 }
