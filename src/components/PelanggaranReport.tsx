@@ -126,7 +126,6 @@ export default function PelanggaranReport({
   const [submission, setSubmission] = useState<SubmissionRow | null>(null);
   const [reportTypeId, setReportTypeId] = useState(FALLBACK_REPORT_TYPE_ID);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [personnelByCode, setPersonnelByCode] = useState<Map<string, ViolationDimensionRow>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -316,7 +315,6 @@ export default function PelanggaranReport({
         setPeriod(selectedPeriod);
         setReportTypeId(contractResult.data.report_type_id);
         setCurrentUserId(userResult.data.user.id);
-        setPersonnelByCode(personnelByCode);
         setLoading(false);
       } catch (error) {
         if (!active) return;
@@ -367,6 +365,9 @@ export default function PelanggaranReport({
     setErrorMessage("");
     setSaveMessage("");
     try {
+      if (submission && submission.submitted_by !== currentUserId) {
+        throw new Error("Laporan ini telah dikirim oleh akun lain dan tidak dapat diubah dari akun ini.");
+      }
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) throw new Error("Sesi operator telah berakhir. Silakan masuk kembali.");
       if (submission && submission.submitted_by !== userData.user.id) {
@@ -374,6 +375,13 @@ export default function PelanggaranReport({
       }
 
       const now = new Date().toISOString();
+      const personnelRows = await supabase.from("personnel_categories")
+        .select("id,code,name,active")
+        .eq("active", true);
+      if (personnelRows.error || !personnelRows.data) throw new Error("Master pangkat/golongan gagal dimuat saat menyimpan.");
+      const personnelByCode = new Map(
+        (personnelRows.data as ViolationDimensionRow[]).map((item) => [normalizeCode(item.code), item]),
+      );
       const categoryToSave = fields.flatMap((field) =>
         ["PA", "BA", "TA", "PNS"].flatMap((rankCode) => {
           const controlCode = field.code + "_" + rankCode;
@@ -425,7 +433,7 @@ export default function PelanggaranReport({
         if (existing?.source_cell_id) {
           throw new Error("Upaya simpan dihentikan: ditemukan data Excel yang tidak boleh ditimpa (" + key + ").");
         }
-        if (existing && existing.violation_version_id !== row.violation_version_id) {
+          if (existing && existing.violation_version_id !== row.violation_version_id) {
           throw new Error("Versi taksonomi pada data tersimpan berbeda. Data tidak ditimpa otomatis.");
         }
         if (existing) {
