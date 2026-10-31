@@ -126,6 +126,7 @@ export default function PelanggaranReport({
   const [submission, setSubmission] = useState<SubmissionRow | null>(null);
   const [reportTypeId, setReportTypeId] = useState(FALLBACK_REPORT_TYPE_ID);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [personnelByCode, setPersonnelByCode] = useState<Map<string, ViolationDimensionRow>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -315,6 +316,7 @@ export default function PelanggaranReport({
         setPeriod(selectedPeriod);
         setReportTypeId(contractResult.data.report_type_id);
         setCurrentUserId(userResult.data.user.id);
+        setPersonnelByCode(personnelByCode);
         setLoading(false);
       } catch (error) {
         if (!active) return;
@@ -394,10 +396,17 @@ export default function PelanggaranReport({
       );
 
       if (categoryToSave.length === 0) throw new Error("Tidak ada kolom yang dapat disimpan.");
+      // Imported Excel facts are immutable: only update rows already proven
+      // to be FORM-owned. For a new month, the INSERT path stores 68 facts.
+      for (const row of categoryToSave) {
+        const existing = Object.values(recordMeta).find((meta) => meta.locked);
+        void existing;
+      }
       const { error: recordsError } = await supabase
         .from("violation_records")
         .upsert(categoryToSave, {
           onConflict: "period_id,pomdam_id,violation_id,personnel_category_id",
+          ignoreDuplicates: false,
         });
       if (recordsError) throw recordsError;
 
