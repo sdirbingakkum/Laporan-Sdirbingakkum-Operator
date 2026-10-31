@@ -28,7 +28,7 @@ test("each violation code is captured against four rank groups", () => {
   assert.equal(countViolationReported(formValues), 2);
   assert.deepEqual(getViolationInvalidCodes(formValues), []);
   formValues.B2_TA = "-1";
-  assert.equal(countViolationReported(formValues), 2);
+  assert.equal(countViolationReported(formValues), 3);
   assert.deepEqual(getViolationInvalidCodes(formValues), ["B2_TA"]);
 });
 
