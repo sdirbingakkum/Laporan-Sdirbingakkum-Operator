@@ -16,9 +16,6 @@ export type ReportExportResult = {
 
 const MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
-const CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types";
-const CHART_NS = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 const XMLNS = "http://www.w3.org/2000/xmlns/";
 const POMDAM_ALIASES: Record<string, string[]> = {
   "XV/PTM": ["XV/PTM", "XVI/PTM"],
@@ -69,7 +66,7 @@ function child(parent: ParentNode, localName: string): Element | null {
 }
 
 function allDescendants(parent: ParentNode, localName: string): Element[] {
-  return Array.from(parent.getElementsByTagNameNS("*", localName));
+  return Array.from((parent as Document | Element).getElementsByTagNameNS("*", localName));
 }
 
 function columnNumber(column: string): number {
@@ -411,7 +408,6 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
   if (!selectedStart) throw new Error("Pomdam " + payload.pomdamCode + " tidak ditemukan pada header template Pelanggaran.");
 
   const baseColumn = columnNumber(selectedStart);
-  const rankCells = (code: string, rankIndex: number): string => columnLetters(baseColumn + rankIndex) + VIOLATION_ROW[code];
   const groupTotalColumn = columnLetters(baseColumn + 4);
   for (const code of VIOLATION_CODES) {
     const row = VIOLATION_ROW[code];
@@ -437,8 +433,8 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
   const nationalTotalColumns = ["DD", "DE", "DF", "DG", "DH"];
   for (let rankIndex = 0; rankIndex < 4; rankIndex++) {
     const targetColumn = nationalTotalColumns[rankIndex];
-    const cells = VIOLATION_GROUP_STARTS.map((start) => columnLetters(columnNumber(start) + rankIndex) + "8");
-    for (const row of [19, 27, 28]) {
+    const detailRows = [...Array.from({ length: 11 }, (_, index) => index + 8), ...Array.from({ length: 6 }, (_, index) => index + 21)];
+    for (const row of [...detailRows, 19, 27, 28]) {
       const sourceRowCells = VIOLATION_GROUP_STARTS.map((start) => columnLetters(columnNumber(start) + rankIndex) + row);
       setFormula(context, targetColumn + row, formulaSum(sourceRowCells));
     }
@@ -495,13 +491,12 @@ function exportViolation(context: SheetContext, payload: ReportExportPayload, mo
     setFormula(context, "G" + subtotal.row, formulaSum(["C", "D", "E", "F"].map((col) => col + subtotal.row)));
   }
   for (const col of ["C", "D", "E", "F"]) {
-    const code = RANKS["CDEF".indexOf(col)];
     const rows = VIOLATION_CODES.map((item) => finalRow(item));
     setFormula(context, col + "191", formulaSum(rows.map((row) => col + row)));
   }
   setFormula(context, "G191", formulaSum(["C", "D", "E", "F"].map((col) => col + "191")));
 
-  writePeriodCell(context, "A1", month);
+  setText(context, "A1", "REKAP DATA BULAN " + month.name + " " + month.year);
   writePeriodCell(context, "A45", month);
   setText(context, "A147", "BIDANG PENEGAKAN HUKUM BULAN " + month.name + " " + month.year);
   setText(context, "BB1", "LAPORAN GAKKUM BULAN " + month.name + " " + month.year);
@@ -643,7 +638,7 @@ export async function exportReportFromTemplate(file: File, payload: ReportExport
 
   const output = zipSync(files, {
     level: 6,
-    mem: 8 * 1024 * 1024,
+    mem: 8,
   });
   const safeCode = pomdamCode.replace(/[^A-Z0-9-]+/g, "-");
   const fileName = "DATA-POMDAM-" + safeCode + "-" + payload.kind + "-" +

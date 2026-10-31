@@ -34,7 +34,9 @@ export default function ExcelTemplateExportButton({
         pomdamName,
         values,
       });
-      const blob = new Blob([result.bytes], {
+      const exportBuffer = new ArrayBuffer(result.bytes.byteLength);
+      new Uint8Array(exportBuffer).set(result.bytes);
+      const blob = new Blob([exportBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = URL.createObjectURL(blob);
