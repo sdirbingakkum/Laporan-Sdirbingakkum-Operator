@@ -552,3 +552,100 @@ button:disabled { cursor: not-allowed; }
 @media (max-width: 390px) {
   .laka-summary-grid .gakkum-summary-card > strong { font-size: 22px; }
 }
+
+/* Statistik Pelanggaran: 17 jenis x empat kategori pangkat/golongan. */
+.violation-rank-heading,
+.violation-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+  align-items: center;
+  gap: 14px;
+}
+.violation-rank-heading {
+  min-height: 39px;
+  color: #91a0af;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .10em;
+}
+.violation-rank-heading > div,
+.violation-rank-inputs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.violation-rank-heading > div span {
+  text-align: center;
+}
+.violation-field-row {
+  min-height: 62px;
+  border-top: 1px solid #f0f2f5;
+}
+.violation-field-label {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+  color: #43566c;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.violation-field-label strong {
+  flex: 0 0 31px;
+  color: #647991;
+  font-size: 9px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.violation-field-label span {
+  min-width: 0;
+}
+.violation-rank-inputs input {
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  padding: 0 5px;
+  border: 1px solid #dce4eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #2d4056;
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+.violation-rank-inputs input:focus {
+  border-color: #8296ab;
+  box-shadow: 0 0 0 3px rgba(72, 100, 132, .08);
+}
+.violation-rank-inputs input:disabled {
+  border-color: #edf0f3;
+  background: #f8fafb;
+  color: #798899;
+  opacity: 1;
+  -webkit-text-fill-color: #798899;
+}
+@media (max-width: 760px) {
+  .violation-rank-heading,
+  .violation-field-row {
+    grid-template-columns: minmax(0, 1fr) minmax(155px, 210px);
+    gap: 8px;
+  }
+  .violation-rank-heading > div,
+  .violation-rank-inputs { gap: 5px; }
+  .violation-rank-heading { font-size: 7px; }
+  .violation-rank-inputs input { height: 35px; font-size: 11px; }
+  .violation-field-label { gap: 5px; font-size: 9px; }
+}
+@media (max-width: 390px) {
+  .violation-rank-heading,
+  .violation-field-row {
+    grid-template-columns: minmax(0, 1fr) 145px;
+    gap: 6px;
+  }
+  .violation-rank-inputs { gap: 4px; }
+  .violation-rank-inputs input { padding: 0 2px; }
+  .violation-field-label { font-size: 8px; }
+  .violation-field-label strong { flex-basis: 27px; font-size: 8px; }
+}
