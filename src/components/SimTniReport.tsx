@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ActiveOperator } from "../lib/operator-auth";
 import {
   SIM_TNI_ACTIVITY_CODES,
+  SIM_TNI_INPUT_CODES,
   SIM_TNI_TYPE_CODES,
   countSimTniReported,
   getSimTniActivityTotal,
