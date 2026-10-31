@@ -548,11 +548,10 @@ export default function SimTniReport({
               pomdamCode={operator.pomdam.code}
               pomdamName={operator.pomdam.displayName}
               values={Object.fromEntries(SIM_TNI_TYPE_CODES.map((typeCode) => {
-                const detailValue = countSimTniReported(values) === SIM_TNI_INPUT_CODES.length
+                const hasDetailInput = activityRecords.length > 0 || countSimTniReported(values) > 0;
+                const value = hasDetailInput
                   ? getSimTniTypeTotal(values, typeCode)
-                  : null;
-                const summaryValue = summaryByType.get(typeCode);
-                const value = detailValue ?? summaryValue;
+                  : summaryByType.get(typeCode);
                 return [typeCode, value === null || value === undefined ? "" : String(value)];
               }))}
               disabled={loading || saving}
