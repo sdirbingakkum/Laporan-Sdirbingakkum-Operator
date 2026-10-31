@@ -37,12 +37,18 @@ export function isValidViolationValue(value: string): boolean {
   return Number.isSafeInteger(Number(normalized));
 }
 
+export const VIOLATION_RANK_CODES = ["PA", "BA", "TA", "PNS"] as const;
+
+export const VIOLATION_INPUT_CODES = VIOLATION_REQUIRED_CODES.flatMap((code) =>
+  VIOLATION_RANK_CODES.map((rank) => code + "_" + rank),
+);
+
 export function getViolationInvalidCodes(values: ViolationValueMap): string[] {
-  return VIOLATION_REQUIRED_CODES.filter((code) => !isValidViolationValue(values[code] ?? ""));
+  return VIOLATION_INPUT_CODES.filter((code) => !isValidViolationValue(values[code] ?? ""));
 }
 
 export function countViolationReported(values: ViolationValueMap): number {
-  return VIOLATION_REQUIRED_CODES.filter((code) => (values[code] ?? "").trim() !== "").length;
+  return VIOLATION_INPUT_CODES.filter((code) => (values[code] ?? "").trim() !== "").length;
 }
 
 export function getViolationTotal(values: ViolationValueMap, codes: readonly string[]): number | null {
