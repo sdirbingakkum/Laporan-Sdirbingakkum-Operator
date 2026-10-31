@@ -396,19 +396,57 @@ export default function PelanggaranReport({
       );
 
       if (categoryToSave.length === 0) throw new Error("Tidak ada kolom yang dapat disimpan.");
-      // Imported Excel facts are immutable: only update rows already proven
-      // to be FORM-owned. For a new month, the INSERT path stores 68 facts.
-      for (const row of categoryToSave) {
-        const existing = Object.values(recordMeta).find((meta) => meta.locked);
-        void existing;
-      }
-      const { error: recordsError } = await supabase
+      // Use the canonical unique key while preventing edits to any Excel row.
+      const { error: readError, data: existingFacts } = await supabase
         .from("violation_records")
-        .upsert(categoryToSave, {
-          onConflict: "period_id,pomdam_id,violation_id,personnel_category_id",
-          ignoreDuplicates: false,
-        });
-      if (recordsError) throw recordsError;
+        .select("id,violation_id,violation_version_id,personnel_category_id,source_cell_id")
+        .eq("period_id", period.id)
+        .eq("pomdam_id", operator.pomdam.id);
+      if (readError) throw readError;
+
+      const existingByKey = new Map(
+        (existingFacts as Array<{
+          id: string;
+          violation_id: string;
+          violation_version_id: string;
+          personnel_category_id: string;
+          source_cell_id: string | null;
+        }>).map((row) => [
+          row.violation_id + ":" + row.personnel_category_id,
+          row,
+        ]),
+      );
+
+      const inserts: typeof categoryToSave = [];
+      const updates: Array<typeof categoryToSave[number] & { id: string }> = [];
+      for (const row of categoryToSave) {
+        const key = row.violation_id + ":" + row.personnel_category_id;
+        const existing = existingByKey.get(key);
+        if (existing?.source_cell_id) {
+          throw new Error("Upaya simpan dihentikan: ditemukan data Excel yang tidak boleh ditimpa (" + key + ").");
+        }
+        if (existing && existing.violation_version_id !== row.violation_version_id) {
+          throw new Error("Versi taksonomi pada data tersimpan berbeda. Data tidak ditimpa otomatis.");
+        }
+        if (existing) {
+          updates.push({ ...row, id: existing.id });
+        } else {
+          inserts.push(row);
+        }
+      }
+
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("violation_records").insert(inserts);
+        if (error) throw error;
+      }
+      for (const row of updates) {
+        const { id, ...payload } = row;
+        const { error } = await supabase.from("violation_records")
+          .update(payload)
+          .eq("id", id)
+          .is("source_cell_id", null);
+        if (error) throw error;
+      }
 
       const submittedAt = new Date().toISOString();
       if (submission) {
