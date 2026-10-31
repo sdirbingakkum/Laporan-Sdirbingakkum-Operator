@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ACTIVE_POMDAMS } from "../src/data/pomdams.ts";
 import {
-  isPuspomadOperatorContext,
   operatorEmail,
-  operatorLoginEmails,
+  operatorUsername,
+  pomdamFromOperatorUsername,
   resolveAuthorizedOperator,
   resolveRestoredOperator,
-  PUSPOMAD_OPERATOR_EMAIL,
 } from "../src/lib/operator-auth.ts";
 
 const pomdam = ACTIVE_POMDAMS.find((item) => item.code === "IM");
@@ -21,34 +20,31 @@ const localAccess = {
   capabilities: ["MANAGE_REPORT_DATA", "VIEW_REPORTS"],
 };
 
-const globalAccess = {
-  authenticated: true,
-  configured: true,
-  role: { code: "PUSPOMAD_OPERATOR" },
-  scope: { type: "ALL_POMDAM", pomdam_ids: [] },
-  capabilities: ["MANAGE_REPORT_DATA", "VIEW_REPORTS"],
-};
-
-test("normalizes Pomdam code to the existing operator identity convention", () => {
+test("creates the requested username from the Pomdam code", () => {
+  assert.equal(operatorUsername("IM"), "operator_im");
+  assert.equal(operatorUsername("I/BB"), "operator_i_bb");
   assert.equal(operatorEmail("IM"), "operator_im@puspomad.mil.id");
-  assert.equal(operatorEmail("I/BB"), "operator_i_bb@puspomad.mil.id");
-  assert.deepEqual(operatorLoginEmails("IM"), [
-    "operator_im@puspomad.mil.id",
-    PUSPOMAD_OPERATOR_EMAIL,
-  ]);
 });
 
-test("accepts a Pomdam operator only for its configured Pomdam and role capability", () => {
+test("resolves a username to the matching Pomdam, including the email alias", () => {
+  assert.equal(pomdamFromOperatorUsername("operator_im")?.id, pomdam.id);
+  assert.equal(pomdamFromOperatorUsername(" OPERATOR_IM ")?.id, pomdam.id);
+  assert.equal(pomdamFromOperatorUsername("operator_im@puspomad.mil.id")?.id, pomdam.id);
+  assert.equal(pomdamFromOperatorUsername("operator_unknown"), null);
+});
+
+test("accepts a local operator only for its own Pomdam and required capability", () => {
   const result = resolveAuthorizedOperator(
     localAccess,
     "operator_im@puspomad.mil.id",
     pomdam.id,
   );
   assert.equal(result?.roleCode, "POMDAM_OPERATOR");
+  assert.equal(result?.username, "operator_im");
   assert.equal(result?.pomdam.id, pomdam.id);
 });
 
-test("rejects a Pomdam operator when the selected Pomdam is outside its scope", () => {
+test("rejects a local operator for a different Pomdam", () => {
   const otherPomdam = ACTIVE_POMDAMS.find((item) => item.code === "I/BB");
   assert.ok(otherPomdam);
   assert.equal(
@@ -57,7 +53,7 @@ test("rejects a Pomdam operator when the selected Pomdam is outside its scope", 
   );
 });
 
-test("rejects mismatched identity, missing capability, and unconfigured sessions", () => {
+test("rejects incorrect identity, missing capability, or unconfigured access", () => {
   assert.equal(resolveAuthorizedOperator(localAccess, "operator_i_bb@puspomad.mil.id", pomdam.id), null);
   assert.equal(
     resolveAuthorizedOperator(
@@ -77,31 +73,44 @@ test("rejects mismatched identity, missing capability, and unconfigured sessions
   );
 });
 
-test("allows a Puspomad-wide operator only with the all-Pomdam role and capability", () => {
-  assert.equal(isPuspomadOperatorContext(globalAccess, PUSPOMAD_OPERATOR_EMAIL), true);
-  const result = resolveAuthorizedOperator(globalAccess, PUSPOMAD_OPERATOR_EMAIL, pomdam.id);
-  assert.equal(result?.roleCode, "PUSPOMAD_OPERATOR");
-  assert.equal(result?.pomdam.id, pomdam.id);
-  assert.equal(isPuspomadOperatorContext(globalAccess, "operator_im@puspomad.mil.id"), false);
+test("rejects commander and global Puspomad roles from the operator portal", () => {
   assert.equal(
     resolveAuthorizedOperator(
-      { ...globalAccess, scope: { type: "POMDAM", pomdam_ids: [] } },
-      PUSPOMAD_OPERATOR_EMAIL,
+      {
+        ...localAccess,
+        role: { code: "PUSPOMAD_OPERATOR" },
+        scope: { type: "ALL_POMDAM", pomdam_ids: [] },
+      },
+      "operator@puspomad.mil.id",
+      pomdam.id,
+    ),
+    null,
+  );
+  assert.equal(
+    resolveAuthorizedOperator(
+      { ...localAccess, role: { code: "POMDAM_COMMANDER" } },
+      "danpomdam_im@puspomad.mil.id",
       pomdam.id,
     ),
     null,
   );
 });
 
-test("restores a local operator from its single database scope", () => {
-  const result = resolveRestoredOperator(localAccess, "operator_im@puspomad.mil.id", null);
+test("restores only an operator session with exactly one Pomdam scope", () => {
+  const result = resolveRestoredOperator(localAccess, "operator_im@puspomad.mil.id");
   assert.equal(result?.pomdam.id, pomdam.id);
-});
-
-test("restores a Puspomad-wide operator only when a valid Pomdam selection was remembered", () => {
-  assert.equal(resolveRestoredOperator(globalAccess, PUSPOMAD_OPERATOR_EMAIL, null), null);
+  assert.deepEqual(
+    resolveRestoredOperator(
+      { ...localAccess, scope: { type: "POMDAM", pomdam_ids: [pomdam.id, pomdam.id] } },
+      "operator_im@puspomad.mil.id",
+    ),
+    result,
+  );
   assert.equal(
-    resolveRestoredOperator(globalAccess, PUSPOMAD_OPERATOR_EMAIL, pomdam.id)?.pomdam.id,
-    pomdam.id,
+    resolveRestoredOperator(
+      { ...localAccess, scope: { type: "ALL_POMDAM", pomdam_ids: [] } },
+      "operator_im@puspomad.mil.id",
+    ),
+    null,
   );
 });
