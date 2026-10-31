@@ -11,6 +11,7 @@ import {
   type LakaTarget,
 } from "../lib/laka-report";
 import { supabase } from "../lib/supabase";
+import ExcelTemplateExportButton from "./ExcelTemplateExportButton";
 
 const CONTRACT_CODE = "LAKA_LALIN_POMDAM_INPUT_2026";
 const REPORT_YEAR = 2026;
@@ -621,6 +622,16 @@ export default function LakaLalinReport({
             <span className="gakkum-status-dot" />
             {currentSubmissionLabel}
           </div>
+          {fields.length === LAKA_REQUIRED_CODES.length && (
+            <ExcelTemplateExportButton
+              kind="LAKA_LALIN"
+              periodValue={monthValue}
+              pomdamCode={operator.pomdam.code}
+              pomdamName={operator.pomdam.displayName}
+              values={values}
+              disabled={loading || saving}
+            />
+          )}
           {!showForm && (
             <button
               className="gakkum-primary-action"

@@ -12,6 +12,7 @@ import {
   simTniInputCode,
 } from "../lib/sim-tni-report";
 import { supabase } from "../lib/supabase";
+import ExcelTemplateExportButton from "./ExcelTemplateExportButton";
 import "./SimTniReport.css";
 
 const DATA_CONTRACT_CODE = "SIM_TNI_POMDAM_INPUT_2026";
@@ -540,6 +541,23 @@ export default function SimTniReport({
             <span className="gakkum-status-dot" />
             {currentSubmissionLabel}
           </div>
+          {inputShapeReady && (
+            <ExcelTemplateExportButton
+              kind="SIM_TNI"
+              periodValue={monthValue}
+              pomdamCode={operator.pomdam.code}
+              pomdamName={operator.pomdam.displayName}
+              values={Object.fromEntries(SIM_TNI_TYPE_CODES.map((typeCode) => {
+                const detailValue = countSimTniReported(values) === SIM_TNI_INPUT_CODES.length
+                  ? getSimTniTypeTotal(values, typeCode)
+                  : null;
+                const summaryValue = summaryByType.get(typeCode);
+                const value = detailValue ?? summaryValue;
+                return [typeCode, value === null || value === undefined ? "" : String(value)];
+              }))}
+              disabled={loading || saving}
+            />
+          )}
           {!showForm && (
             <button
               className="gakkum-primary-action"

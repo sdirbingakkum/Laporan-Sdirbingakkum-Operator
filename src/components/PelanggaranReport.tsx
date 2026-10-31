@@ -9,6 +9,7 @@ import {
   type ViolationField,
 } from "../lib/violation-report";
 import { supabase } from "../lib/supabase";
+import ExcelTemplateExportButton from "./ExcelTemplateExportButton";
 
 const CONTRACT_CODE = "PELANGGARAN_POMDAM_INPUT_2026";
 const REPORT_YEAR = 2026;
@@ -544,6 +545,16 @@ export default function PelanggaranReport({
         </div>
         <div className="gakkum-heading-actions">
           <div className="gakkum-status"><span className="gakkum-status-dot" />{currentSubmissionLabel}</div>
+          {fields.length > 0 && (
+            <ExcelTemplateExportButton
+              kind="PELANGGARAN"
+              periodValue={monthValue}
+              pomdamCode={operator.pomdam.code}
+              pomdamName={operator.pomdam.displayName}
+              values={values}
+              disabled={loading || saving}
+            />
+          )}
           {!showForm && (
             <button className="gakkum-primary-action" type="button" onClick={() => setShowForm(true)} disabled={loading || fields.length === 0}>
               {loading ? "MEMUAT FORM..." : fields.length === 0 ? "FORM BELUM TERSEDIA" : editableCount > 0 && !submissionOwnerConflict ? "ISI LAPORAN" : "LIHAT LAPORAN"}

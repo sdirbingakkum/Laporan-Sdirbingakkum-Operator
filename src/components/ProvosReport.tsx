@@ -9,6 +9,7 @@ import {
   isValidProvosValue,
 } from "../lib/provos-report";
 import { supabase } from "../lib/supabase";
+import ExcelTemplateExportButton from "./ExcelTemplateExportButton";
 import "./ProvosReport.css";
 
 const CONTRACT_CODE = "PROVOS_POMDAM_INPUT_2026";
@@ -641,6 +642,16 @@ export default function ProvosReport({
             <span className="gakkum-status-dot" />
             {currentSubmissionLabel}
           </div>
+          {fields.length === PROVOS_REQUIRED_CODES.length && (
+            <ExcelTemplateExportButton
+              kind="PROVOS"
+              periodValue={monthValue}
+              pomdamCode={operator.pomdam.code}
+              pomdamName={operator.pomdam.displayName}
+              values={values}
+              disabled={loading || saving}
+            />
+          )}
           {!showForm && (
             <button
               className="gakkum-primary-action"

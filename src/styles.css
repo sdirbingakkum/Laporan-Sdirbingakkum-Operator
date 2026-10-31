@@ -649,3 +649,46 @@ button:disabled { cursor: not-allowed; }
   .violation-field-label { font-size: 8px; }
   .violation-field-label strong { flex-basis: 27px; font-size: 8px; }
 }
+
+
+/* Excel export action */
+.excel-template-export {
+  display: grid;
+  min-width: 145px;
+  gap: 5px;
+}
+.excel-template-export-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.excel-template-export-button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dbe3eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #465b72;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+.excel-template-export-button:hover:not(:disabled) {
+  border-color: #b9c8d8;
+  background: #f7f9fb;
+}
+.excel-template-export-button:disabled { opacity: .5; }
+.excel-template-export small {
+  color: #8b97a5;
+  font-size: 7px;
+  line-height: 1.35;
+}
+.excel-template-export-feedback {
+  max-width: 260px;
+  color: #66768a;
+  font-size: 8px;
+  line-height: 1.4;
+}
